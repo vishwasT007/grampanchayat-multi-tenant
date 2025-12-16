@@ -1,6 +1,8 @@
-# Gram Panchayat Website
+# Gram Panchayat Multi-Tenant Portal
 
-A comprehensive, multilingual website for Gram Panchayat management built with React.js.
+A comprehensive, multilingual website for Gram Panchayat management built with React.js and Firebase.
+
+🌐 **Live Site:** https://grampanchayat-multi-tenant.web.app
 
 ## 🚀 Quick Start
 
