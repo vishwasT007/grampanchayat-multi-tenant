@@ -94,6 +94,10 @@ export default function AddGP() {
       setError('District is required');
       return false;
     }
+    if (!formData.customDomain && !formData.subdomain) {
+      setError('Either custom domain or subdomain is required');
+      return false;
+    }
     if (!formData.adminEmail.trim() || !formData.adminEmail.includes('@')) {
       setError('Valid admin email is required');
       return false;
@@ -120,7 +124,23 @@ export default function AddGP() {
     setError('');
 
     try {
-      const result = await createGramPanchayat(formData);
+      // Generate GP ID from name
+      const gpId = formData.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '')
+        .substring(0, 20);
+      
+      // Determine domain (use custom domain if provided, otherwise subdomain)
+      const domain = formData.customDomain || `${formData.subdomain || gpId}.grampanchayat.in`;
+      
+      // Prepare data for creation
+      const gpData = {
+        ...formData,
+        id: gpId,
+        domain: domain
+      };
+      
+      const result = await createGramPanchayat(gpData);
       
       // Store credentials for display
       setGeneratedCredentials({
