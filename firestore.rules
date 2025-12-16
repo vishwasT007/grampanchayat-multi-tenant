@@ -1,0 +1,57 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===========================
+    // Helper Functions
+    // ===========================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Get user role from specific tenant
+    function getUserRole(tenant) {
+      let userPath = /databases/$(database)/documents/gramPanchayats/$(tenant)/users/$(request.auth.uid);
+      return exists(userPath) ? get(userPath).data.role : null;
+    }
+    
+    // Check if user is admin for specific tenant
+    function isAdminForTenant(tenant) {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/gramPanchayats/$(tenant)/users/$(request.auth.uid)) &&
+        getUserRole(tenant) in ['admin', 'superAdmin'];
+    }
+    
+    // Check if user is superAdmin
+    function isSuperAdmin() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/gramPanchayats/pindkepar/users/$(request.auth.uid)) &&
+        getUserRole('pindkepar') == 'superAdmin';
+    }
+    
+    // ===========================
+    // Multi-Tenant Gram Panchayat Data
+    // Each GP's data is isolated by tenant ID
+    // ===========================
+    
+    match /gramPanchayats/{tenant}/{document=**} {
+      // Public read access to all GP data
+      allow read: if true;
+      
+      // Write access only for admins of this specific tenant
+      allow write: if isAdminForTenant(tenant);
+    }
+    
+    // ===========================
+    // System Configuration
+    // (Only superAdmin can modify)
+    // ===========================
+    
+    match /system/{document=**} {
+      allow read: if true;
+      allow write: if isSuperAdmin();
+    }
+  }
+}

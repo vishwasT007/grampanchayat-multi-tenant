@@ -1,0 +1,86 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===========================
+    // Helper Functions
+    // ===========================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    function isSuperAdmin() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superAdmin';
+    }
+    
+    function hasTenantAccess(tenant) {
+      return isAuthenticated() && (
+        isSuperAdmin() ||
+        (isAdmin() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenant == tenant) ||
+        (isAdmin() && tenant in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenants)
+      );
+    }
+    
+    // ===========================
+    // Multi-Tenant Gram Panchayat Data
+    // Each GP's data is isolated by tenant ID
+    // ===========================
+    
+    match /gramPanchayats/{tenant}/{document=**} {
+      // Public read access to all GP data
+      allow read: if true;
+      
+      // Write access only for admins with access to this specific tenant
+      allow write: if hasTenantAccess(tenant);
+    }
+    
+    // ===========================
+    // Users Collection
+    // ===========================
+    
+    match /users/{userId} {
+      // Users can read their own data
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Admins can read all users
+      allow read: if isAdmin() || isSuperAdmin();
+      
+      // Only super admins can create users
+      allow create: if isSuperAdmin();
+      
+      // Users can update their own profile (limited fields)
+      // Cannot change role, tenant, or tenants
+      allow update: if (isAuthenticated() && request.auth.uid == userId &&
+                       !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'tenant', 'tenants'])) ||
+                      isSuperAdmin();
+      
+      // Only super admins can delete users
+      allow delete: if isSuperAdmin();
+    }
+    
+    // ===========================
+    // Admin Management
+    // ===========================
+    
+    match /admin/{document=**} {
+      allow read, write: if isSuperAdmin();
+    }
+    
+    // ===========================
+    // System Configuration
+    // ===========================
+    
+    match /system/{document=**} {
+      allow read: if true;
+      allow write: if isSuperAdmin();
+    }
+  }
+}

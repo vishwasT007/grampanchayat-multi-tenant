@@ -1,0 +1,43 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             request.auth.token.role == 'admin';
+    }
+    
+    function isSuperAdmin() {
+      return isAuthenticated() && 
+             request.auth.token.role == 'superAdmin';
+    }
+    
+    function hasTenantAccess(tenant) {
+      return isAuthenticated() && (
+        isSuperAdmin() ||
+        (isAdmin() && request.auth.token.tenant == tenant) ||
+        (isAdmin() && tenant in request.auth.token.tenants)
+      );
+    }
+    
+    // Multi-Tenant Storage
+    // Each tenant's files are stored in their own directory
+    // Pattern: {tenant}/{category}/{filename}
+    match /{tenant}/{allPaths=**} {
+      // Public read access
+      allow read: if true;
+      
+      // Write access only for admins with access to this tenant
+      allow write: if hasTenantAccess(tenant);
+      
+      // Delete access only for admins with access to this tenant
+      allow delete: if hasTenantAccess(tenant);
+    }
+  }
+}

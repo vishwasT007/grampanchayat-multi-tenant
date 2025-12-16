@@ -1,0 +1,45 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if user exists in tenant's users collection
+    function userExistsInTenant(tenant) {
+      return isAuthenticated() && 
+        firestore.exists(/databases/(default)/documents/gramPanchayats/$(tenant)/users/$(request.auth.uid));
+    }
+    
+    // Get user role from Firestore
+    function getUserRole(tenant) {
+      let userDoc = firestore.get(/databases/(default)/documents/gramPanchayats/$(tenant)/users/$(request.auth.uid));
+      return userDoc.data.role;
+    }
+    
+    // Check if user is admin or superAdmin for this tenant
+    function isAdminForTenant(tenant) {
+      return userExistsInTenant(tenant) && 
+        getUserRole(tenant) in ['admin', 'superAdmin'];
+    }
+    
+    // Multi-Tenant Storage
+    // Pattern: gramPanchayats/{tenant}/{category}/{filename}
+    match /gramPanchayats/{tenant}/{allPaths=**} {
+      // Public read access
+      allow read: if true;
+      
+      // Write/Delete access only for admins of this tenant
+      allow write, delete: if isAdminForTenant(tenant);
+    }
+    
+    // Legacy paths (for backward compatibility)
+    match /{tenant}/{allPaths=**} {
+      allow read: if true;
+      allow write, delete: if isAdminForTenant(tenant);
+    }
+  }
+}
