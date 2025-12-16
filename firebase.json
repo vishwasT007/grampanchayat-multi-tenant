@@ -52,6 +52,13 @@
         "**/.*",
         "**/node_modules/**"
       ],
+      "redirects": [
+        {
+          "source": "/",
+          "destination": "/superadmin/login",
+          "type": 302
+        }
+      ],
       "rewrites": [
         {
           "source": "**",
