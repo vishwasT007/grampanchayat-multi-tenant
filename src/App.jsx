@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { LanguageProvider } from './context/LanguageContext';
 import { AuthProvider } from './context/AuthContext';
 import { SiteSettingsProvider } from './context/SiteSettingsContext';
@@ -59,6 +59,9 @@ import ManageGPs from './pages/SuperAdmin/ManageGPs';
 import ManageUsers from './pages/SuperAdmin/ManageUsers';
 
 function App() {
+  // Check if we're on the Super Admin domain
+  const isSuperAdminDomain = window.location.hostname.includes('superadmin-grampanchayat');
+
   return (
     <Router>
       <ThemeProvider>
@@ -67,6 +70,11 @@ function App() {
             <LanguageProvider>
               <SuperAdminProvider>
                 <Routes>
+                  {/* Redirect root to Super Admin login on Super Admin domain */}
+                  {isSuperAdminDomain && (
+                    <Route path="/" element={<Navigate to="/superadmin/login" replace />} />
+                  )}
+                  
                   {/* Super Admin Routes */}
                   <Route path="/superadmin/login" element={<SuperAdminLogin />} />
                   <Route
