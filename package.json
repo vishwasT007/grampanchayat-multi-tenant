@@ -5,7 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:superadmin": "vite --mode superadmin",
     "build": "vite build",
+    "build:gp": "vite build --outDir dist",
+    "build:superadmin": "vite build --outDir dist-superadmin",
+    "build:all": "npm run build:gp && npm run build:superadmin",
+    "deploy:gp": "npm run build:gp && firebase deploy --only hosting:main",
+    "deploy:superadmin": "npm run build:superadmin && firebase deploy --only hosting:superadmin",
+    "deploy:all": "npm run build:all && firebase deploy --only hosting",
     "lint": "eslint .",
     "preview": "vite preview"
   },

@@ -1,5 +1,18 @@
 {
   "projects": {
     "default": "grampanchayat-f0aa7"
-  }
+  },
+  "targets": {
+    "grampanchayat-multi-tenant": {
+      "hosting": {
+        "main": [
+          "grampanchayat-multi-tenant"
+        ],
+        "superadmin": [
+          "superadmin-grampanchayat"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

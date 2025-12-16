@@ -53,5 +53,23 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isSuperAdmin();
     }
+    
+    // ===========================
+    // Global Configuration (Super Admin)
+    // ===========================
+    
+    // Temporary rule to allow initial super admin creation
+    // TODO: Restrict this after first super admin is created
+    match /globalConfig/superAdmins/users/{userId} {
+      // Allow anyone to create the first super admin (for initial setup)
+      // After setup, change this to: allow write: if isSuperAdminGlobal();
+      allow read, write: if true;
+    }
+    
+    match /globalConfig/{document=**} {
+      // Temporary open access for initial setup
+      // TODO: Restrict this after setup
+      allow read, write: if true;
+    }
   }
 }
