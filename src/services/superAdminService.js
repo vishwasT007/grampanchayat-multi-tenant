@@ -122,7 +122,7 @@ export const getGramPanchayat = async (gpId) => {
  */
 export const createGramPanchayat = async (gpData) => {
   try {
-    const { id, name, nameHi, domain, adminEmail, adminPassword, ...otherData } = gpData;
+    const { id, name, nameMarathi, domain, adminEmail, adminPassword, ...otherData } = gpData;
     
     // Validate required fields
     if (!id || !name || !domain || !adminEmail || !adminPassword) {
@@ -139,7 +139,7 @@ export const createGramPanchayat = async (gpData) => {
     const gpDocData = {
       id,
       name,
-      nameHi: nameHi || name,
+      nameMarathi: nameMarathi || '',
       domain,
       domainStatus: 'pending',
       active: true,
