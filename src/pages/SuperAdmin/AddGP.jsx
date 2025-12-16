@@ -483,27 +483,19 @@ export default function AddGP() {
               <Globe className="w-5 h-5 text-indigo-600" />
               Domain Configuration
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
+            
+            {/* Info Box */}
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <strong>💡 Tip:</strong> You can use FREE Firebase subdomains (like <code>pindkepar.web.app</code>) 
+                for now. Custom domains can be added later without affecting your data!
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-4">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Custom Domain (Optional)
-                </label>
-                <input
-                  type="text"
-                  name="customDomain"
-                  value={formData.customDomain}
-                  onChange={handleChange}
-                  placeholder="www.grampanchayat-name.in"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  You'll need to configure this in Firebase Hosting after creation
-                </p>
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Subdomain
+                  Subdomain <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -512,6 +504,7 @@ export default function AddGP() {
                     value={formData.subdomain}
                     onChange={handleChange}
                     placeholder="pindkepar-lodha"
+                    required
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   />
                   <button
@@ -523,8 +516,28 @@ export default function AddGP() {
                     <RefreshCw className="w-5 h-5" />
                   </button>
                 </div>
+                <p className="text-sm text-gray-600 mt-1">
+                  ✅ <strong>FREE Firebase URL:</strong> <code className="bg-gray-100 px-2 py-1 rounded">{formData.subdomain || 'subdomain'}.web.app</code>
+                </p>
                 <p className="text-sm text-gray-500 mt-1">
-                  Will be accessible at: {formData.subdomain || 'subdomain'}.grampanchayat-multi-tenant.web.app
+                  This will be your GP's website address. You can create a Firebase hosting site for this later.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Custom Domain (Optional - Can add later)
+                </label>
+                <input
+                  type="text"
+                  name="customDomain"
+                  value={formData.customDomain}
+                  onChange={handleChange}
+                  placeholder="grampanchyatpindkepaarlodha.in"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  💰 Requires purchasing domain. Can be configured in Firebase Hosting console later.
                 </p>
               </div>
             </div>
