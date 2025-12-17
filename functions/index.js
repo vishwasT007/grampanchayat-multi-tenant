@@ -195,3 +195,95 @@ exports.getDeploymentStatus = onCall(async (request) => {
     throw error;
   }
 });
+
+// Cloud Function to create Firebase Auth user on first login
+// Called when GP admin tries to login but Auth user doesn't exist
+exports.createAuthUserOnLogin = onCall(async (request) => {
+  const {email, password, tenantId} = request.data;
+
+  if (!email || !password || !tenantId) {
+    throw new Error("Missing required fields: email, password, tenantId");
+  }
+
+  try {
+    logger.info(`Creating Auth user for: ${email} (tenant: ${tenantId})`);
+
+    // Check if GP exists and get admin credentials
+    const gpDoc = await admin.firestore()
+        .doc(`globalConfig/metadata/gramPanchayats/${tenantId}`)
+        .get();
+
+    if (!gpDoc.exists) {
+      throw new Error(`GP not found: ${tenantId}`);
+    }
+
+    const gpData = gpDoc.data();
+
+    // Verify email and password match
+    if (gpData.adminEmail !== email) {
+      throw new Error("Email does not match GP admin email");
+    }
+
+    if (gpData.adminPassword !== password) {
+      throw new Error("Invalid password");
+    }
+
+    // Create Firebase Auth user
+    let authUser;
+    try {
+      authUser = await admin.auth().createUser({
+        email: email,
+        password: password,
+        displayName: gpData.adminName || "Admin",
+      });
+      logger.info(`✅ Auth user created: ${authUser.uid}`);
+    } catch (authError) {
+      if (authError.code === "auth/email-already-in-use") {
+        // User already exists, get the existing user
+        authUser = await admin.auth().getUserByEmail(email);
+        logger.info(`ℹ️ Auth user already exists: ${authUser.uid}`);
+      } else {
+        throw authError;
+      }
+    }
+
+    // Create/update user document in Firestore
+    const userDocPath = `gramPanchayats/${tenantId}/users/${authUser.uid}`;
+    await admin.firestore().doc(userDocPath).set({
+      email: email,
+      name: gpData.adminName || "Admin",
+      role: "admin",
+      tenantId: tenantId,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      active: true,
+      createdBy: "auto-auth-creation",
+    }, {merge: true});
+
+    logger.info(`✅ User document created: ${userDocPath}`);
+
+    // Remove placeholder user if exists
+    try {
+      const placeholderQuery = await admin.firestore()
+          .collection(`gramPanchayats/${tenantId}/users`)
+          .where("isPending", "==", true)
+          .where("email", "==", email)
+          .get();
+
+      for (const doc of placeholderQuery.docs) {
+        await doc.ref.delete();
+        logger.info(`🗑️ Removed placeholder user: ${doc.id}`);
+      }
+    } catch (cleanupError) {
+      logger.warn("Error cleaning up placeholder:", cleanupError);
+    }
+
+    return {
+      success: true,
+      uid: authUser.uid,
+      message: "Auth user created successfully",
+    };
+  } catch (error) {
+    logger.error("Error creating Auth user:", error);
+    throw error;
+  }
+});

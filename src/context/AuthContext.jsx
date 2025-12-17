@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { signIn, signOut, getCurrentUser, onAuthChange } from '../services/authService';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getTenant } from '../utils/tenant';
 
 const AuthContext = createContext();
 
@@ -48,11 +50,38 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       console.error('Login error:', error);
+      
+      // If user not found or invalid credentials, try creating Auth user via Cloud Function
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+        console.log('User not found, attempting to create Auth user...');
+        try {
+          const functions = getFunctions();
+          const createAuthUser = httpsCallable(functions, 'createAuthUserOnLogin');
+          
+          const tenantId = getTenant();
+          const result = await createAuthUser({ 
+            email: credentials.email, 
+            password: credentials.password,
+            tenantId: tenantId
+          });
+          
+          console.log('Auth user created:', result.data);
+          
+          // Now try logging in again
+          const firebaseUser = await signIn(credentials.email, credentials.password);
+          return { success: true };
+        } catch (createError) {
+          console.error('Failed to create Auth user:', createError);
+          return { 
+            success: false, 
+            error: createError.message || 'Invalid credentials. Please check your email and password.' 
+          };
+        }
+      }
+      
       let errorMessage = 'Login failed. Please try again.';
       
-      if (error.code === 'auth/user-not-found') {
-        errorMessage = 'No account found with this email.';
-      } else if (error.code === 'auth/wrong-password') {
+      if (error.code === 'auth/wrong-password') {
         errorMessage = 'Incorrect password.';
       } else if (error.code === 'auth/invalid-email') {
         errorMessage = 'Invalid email address.';
