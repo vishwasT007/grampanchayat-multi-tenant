@@ -24,11 +24,11 @@ service cloud.firestore {
         getUserRole(tenant) in ['admin', 'superAdmin'];
     }
     
-    // Check if user is superAdmin
+    // Check if user is superAdmin (global super admin)
     function isSuperAdmin() {
       return isAuthenticated() && 
-        exists(/databases/$(database)/documents/gramPanchayats/pindkepar/users/$(request.auth.uid)) &&
-        getUserRole('pindkepar') == 'superAdmin';
+        exists(/databases/$(database)/documents/globalConfig/superAdmins/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/globalConfig/superAdmins/users/$(request.auth.uid)).data.role == 'superadmin';
     }
     
     // ===========================
@@ -40,8 +40,10 @@ service cloud.firestore {
       // Public read access to all GP data
       allow read: if true;
       
-      // Write access only for admins of this specific tenant
-      allow write: if isAdminForTenant(tenant);
+      // Write access for:
+      // 1. Admins of this specific tenant
+      // 2. Global super admins (can manage all tenants)
+      allow write: if isAdminForTenant(tenant) || isSuperAdmin();
     }
     
     // ===========================
