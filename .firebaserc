@@ -1,6 +1,6 @@
 {
   "projects": {
-    "default": "grampanchayat-f0aa7"
+    "default": "grampanchayat-multi-tenant"
   },
   "targets": {
     "grampanchayat-multi-tenant": {

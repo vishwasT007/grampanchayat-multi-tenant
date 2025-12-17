@@ -285,17 +285,6 @@ export const deleteGramPanchayat = async (gpId) => {
     const userDeletions = [];
     
     for (const userDoc of usersSnapshot.docs) {
-      const userData = userDoc.data();
-      
-      // Delete user from Firebase Auth
-      try {
-        // Note: We can't delete Firebase Auth users from client-side
-        // This would need to be done via Firebase Admin SDK (Cloud Function)
-        console.log('⚠️ User in Firebase Auth needs manual deletion:', userData.email);
-      } catch (error) {
-        console.error('Error noting user for deletion:', error);
-      }
-      
       // Delete user document from Firestore
       userDeletions.push(deleteDoc(doc(db, `gramPanchayats/${gpId}/users`, userDoc.id)));
     }
@@ -327,9 +316,9 @@ export const deleteGramPanchayat = async (gpId) => {
     
     console.log('✅ All subcollections deleted');
     
-    // 3. Delete from globalConfig
+    // 3. Delete from globalConfig - This triggers Cloud Function for 100% automation
     await deleteDoc(doc(db, 'globalConfig', 'metadata', 'gramPanchayats', gpId));
-    console.log('✅ GP metadata deleted');
+    console.log('✅ GP metadata deleted - Cloud Functions will handle hosting site & Auth user cleanup');
     
     // 4. Log the activity
     await logSuperAdminActivity({
@@ -339,38 +328,11 @@ export const deleteGramPanchayat = async (gpId) => {
       timestamp: Timestamp.now()
     });
     
-    // 5. Return success with instructions for manual cleanup
-    const subdomain = gpData.domain?.replace('.web.app', '');
-    const manualSteps = [];
-    
-    // Check if it's a Firebase hosting subdomain
-    if (gpData.domain?.includes('.web.app')) {
-      manualSteps.push({
-        title: 'Delete Firebase Hosting Site',
-        description: `The website is still deployed at ${gpData.domain}`,
-        action: 'Run this command in terminal:',
-        command: `firebase hosting:sites:delete ${subdomain}`,
-        alternative: `Or delete manually in Firebase Console: https://console.firebase.google.com/project/grampanchayat-multi-tenant/hosting/sites`
-      });
-    }
-    
-    // Add manual step for deleting users from Firebase Auth
-    if (usersSnapshot.docs.length > 0) {
-      const userEmails = usersSnapshot.docs.map(d => d.data().email).join(', ');
-      manualSteps.push({
-        title: 'Delete Firebase Auth Users',
-        description: `${usersSnapshot.docs.length} user(s) need to be deleted from Firebase Authentication`,
-        users: userEmails,
-        action: 'Delete manually in Firebase Console:',
-        url: 'https://console.firebase.google.com/project/grampanchayat-multi-tenant/authentication/users'
-      });
-    }
-    
     return { 
       success: true, 
-      message: 'GP deleted successfully from Firestore',
-      warning: manualSteps.length > 0 ? 'Some manual cleanup required' : null,
-      manualSteps
+      message: '✅ GP deleted successfully! Cloud Functions are automatically cleaning up hosting site and Auth users.',
+      automated: true,
+      note: 'No manual steps required - everything is handled automatically by Cloud Functions.'
     };
   } catch (error) {
     console.error('Error deleting GP:', error);
