@@ -115,8 +115,32 @@ const ViewGP = () => {
 
     try {
       setActionLoading(true);
-      await deleteGramPanchayat(id);
-      alert('Gram Panchayat deleted successfully');
+      const result = await deleteGramPanchayat(id);
+      
+      // Show success message
+      let message = result.message;
+      
+      // Add manual cleanup instructions if any
+      if (result.manualSteps && result.manualSteps.length > 0) {
+        message += '\n\n⚠️ MANUAL CLEANUP REQUIRED:\n';
+        
+        result.manualSteps.forEach((step, index) => {
+          message += `\n${index + 1}. ${step.title}:\n`;
+          if (step.command) {
+            message += `   ${step.action}\n   ${step.command}\n`;
+          }
+          if (step.users) {
+            message += `   Users: ${step.users}\n`;
+          }
+          if (step.url) {
+            message += `   ${step.action} ${step.url}\n`;
+          }
+        });
+        
+        message += '\n\nCopy these instructions before clicking OK!';
+      }
+      
+      alert(message);
       navigate('/superadmin/gram-panchayats');
     } catch (err) {
       alert('Failed to delete: ' + err.message);

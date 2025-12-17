@@ -266,19 +266,72 @@ export const toggleGPStatus = async (gpId, active) => {
 };
 
 /**
- * Delete Gram Panchayat
+ * Delete Gram Panchayat (Complete Deletion)
  */
 export const deleteGramPanchayat = async (gpId) => {
   try {
     // Get GP data before deletion
     const gpData = await getGramPanchayat(gpId);
     
-    // Delete from globalConfig
+    if (!gpData) {
+      throw new Error('GP not found');
+    }
+    
+    console.log('🗑️ Starting deletion of GP:', gpId);
+    
+    // 1. Delete all users in the GP
+    console.log('🗑️ Deleting GP users...');
+    const usersSnapshot = await getDocs(collection(db, `gramPanchayats/${gpId}/users`));
+    const userDeletions = [];
+    
+    for (const userDoc of usersSnapshot.docs) {
+      const userData = userDoc.data();
+      
+      // Delete user from Firebase Auth
+      try {
+        // Note: We can't delete Firebase Auth users from client-side
+        // This would need to be done via Firebase Admin SDK (Cloud Function)
+        console.log('⚠️ User in Firebase Auth needs manual deletion:', userData.email);
+      } catch (error) {
+        console.error('Error noting user for deletion:', error);
+      }
+      
+      // Delete user document from Firestore
+      userDeletions.push(deleteDoc(doc(db, `gramPanchayats/${gpId}/users`, userDoc.id)));
+    }
+    
+    await Promise.all(userDeletions);
+    console.log('✅ User documents deleted');
+    
+    // 2. Delete all subcollections in the GP
+    const subcollections = [
+      'notices',
+      'announcements', 
+      'members',
+      'services',
+      'schemes',
+      'gallery',
+      'forms',
+      'grievances',
+      'financials',
+      'downloads',
+      'settings'
+    ];
+    
+    for (const subcollection of subcollections) {
+      console.log(`🗑️ Deleting ${subcollection}...`);
+      const snapshot = await getDocs(collection(db, `gramPanchayats/${gpId}/${subcollection}`));
+      const deletions = snapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deletions);
+    }
+    
+    console.log('✅ All subcollections deleted');
+    
+    // 3. Delete from globalConfig
     await deleteDoc(doc(db, 'globalConfig', 'metadata', 'gramPanchayats', gpId));
+    console.log('✅ GP metadata deleted');
     
-    // Note: This does NOT delete the GP's data (gramPanchayats/{gpId}/...)
-    // That's intentional - data should be archived, not deleted
-    
+    // 4. Log the activity
     await logSuperAdminActivity({
       action: 'delete_gp',
       gpId,
@@ -286,7 +339,39 @@ export const deleteGramPanchayat = async (gpId) => {
       timestamp: Timestamp.now()
     });
     
-    return { success: true, message: 'GP deleted successfully' };
+    // 5. Return success with instructions for manual cleanup
+    const subdomain = gpData.domain?.replace('.web.app', '');
+    const manualSteps = [];
+    
+    // Check if it's a Firebase hosting subdomain
+    if (gpData.domain?.includes('.web.app')) {
+      manualSteps.push({
+        title: 'Delete Firebase Hosting Site',
+        description: `The website is still deployed at ${gpData.domain}`,
+        action: 'Run this command in terminal:',
+        command: `firebase hosting:sites:delete ${subdomain}`,
+        alternative: `Or delete manually in Firebase Console: https://console.firebase.google.com/project/grampanchayat-multi-tenant/hosting/sites`
+      });
+    }
+    
+    // Add manual step for deleting users from Firebase Auth
+    if (usersSnapshot.docs.length > 0) {
+      const userEmails = usersSnapshot.docs.map(d => d.data().email).join(', ');
+      manualSteps.push({
+        title: 'Delete Firebase Auth Users',
+        description: `${usersSnapshot.docs.length} user(s) need to be deleted from Firebase Authentication`,
+        users: userEmails,
+        action: 'Delete manually in Firebase Console:',
+        url: 'https://console.firebase.google.com/project/grampanchayat-multi-tenant/authentication/users'
+      });
+    }
+    
+    return { 
+      success: true, 
+      message: 'GP deleted successfully from Firestore',
+      warning: manualSteps.length > 0 ? 'Some manual cleanup required' : null,
+      manualSteps
+    };
   } catch (error) {
     console.error('Error deleting GP:', error);
     throw error;
