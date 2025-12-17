@@ -1,0 +1,148 @@
+name: Auto Deploy GP to Firebase Hosting
+
+on:
+  # Manual trigger - you can manually deploy any GP
+  workflow_dispatch:
+    inputs:
+      gp_subdomain:
+        description: 'GP Subdomain (e.g., pawni, sampurna)'
+        required: true
+        type: string
+
+  # Can also trigger from API/webhook (future)
+  repository_dispatch:
+    types: [deploy_gp]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Get GP subdomain
+        id: get_subdomain
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "subdomain=${{ github.event.inputs.gp_subdomain }}" >> $GITHUB_OUTPUT
+          else
+            echo "subdomain=${{ github.event.client_payload.gp_subdomain }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Create Firebase hosting site (if not exists)
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          GP_SUBDOMAIN="${{ steps.get_subdomain.outputs.subdomain }}"
+          
+          # Try to create site, ignore if already exists
+          firebase hosting:sites:create "$GP_SUBDOMAIN" --token "$FIREBASE_TOKEN" 2>&1 || echo "Site may already exist"
+
+      - name: Configure hosting target
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          GP_SUBDOMAIN="${{ steps.get_subdomain.outputs.subdomain }}"
+          firebase target:apply hosting "$GP_SUBDOMAIN" "$GP_SUBDOMAIN" --token "$FIREBASE_TOKEN"
+
+      - name: Update firebase.json
+        run: |
+          GP_SUBDOMAIN="${{ steps.get_subdomain.outputs.subdomain }}"
+          
+          # Check if configuration already exists
+          if grep -q "\"target\": \"$GP_SUBDOMAIN\"" firebase.json; then
+            echo "Configuration already exists for $GP_SUBDOMAIN"
+          else
+            echo "Adding configuration for $GP_SUBDOMAIN"
+            
+            # Create temporary file with new hosting config
+            cat > /tmp/new_hosting.json << EOF
+          {
+            "target": "$GP_SUBDOMAIN",
+            "public": "dist",
+            "ignore": [
+              "firebase.json",
+              "**/.*",
+              "**/node_modules/**"
+            ],
+            "rewrites": [
+              {
+                "source": "**",
+                "destination": "/index.html"
+              }
+            ],
+            "headers": [
+              {
+                "source": "**/*.@(jpg|jpeg|gif|png|svg|webp)",
+                "headers": [
+                  {
+                    "key": "Cache-Control",
+                    "value": "max-age=31536000"
+                  }
+                ]
+              },
+              {
+                "source": "**/*.@(js|css)",
+                "headers": [
+                  {
+                    "key": "Cache-Control",
+                    "value": "max-age=31536000"
+                  }
+                ]
+              }
+            ],
+            "cleanUrls": true,
+            "trailingSlash": false
+          }
+          EOF
+            
+            # Use Node.js to properly insert into firebase.json
+            node -e "
+              const fs = require('fs');
+              const config = JSON.parse(fs.readFileSync('firebase.json', 'utf8'));
+              const newHosting = JSON.parse(fs.readFileSync('/tmp/new_hosting.json', 'utf8'));
+              config.hosting.push(newHosting);
+              fs.writeFileSync('firebase.json', JSON.stringify(config, null, 2));
+            "
+          fi
+
+      - name: Build GP website
+        run: npm run build:gp
+
+      - name: Deploy to Firebase Hosting
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          GP_SUBDOMAIN="${{ steps.get_subdomain.outputs.subdomain }}"
+          firebase deploy --only hosting:"$GP_SUBDOMAIN" --token "$FIREBASE_TOKEN"
+
+      - name: Commit firebase.json changes (if any)
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: Add hosting config for ${{ steps.get_subdomain.outputs.subdomain }}"
+          file_pattern: 'firebase.json .firebaserc'
+          commit_user_name: 'GitHub Actions Bot'
+          commit_user_email: 'actions@github.com'
+
+      - name: Success notification
+        run: |
+          GP_SUBDOMAIN="${{ steps.get_subdomain.outputs.subdomain }}"
+          echo "✅ GP deployed successfully!"
+          echo "🌐 Live at: https://$GP_SUBDOMAIN.web.app"
+          echo ""
+          echo "📝 Next steps:"
+          echo "1. Update domain in Firestore to: $GP_SUBDOMAIN.web.app"
+          echo "2. Test: https://$GP_SUBDOMAIN.web.app"
