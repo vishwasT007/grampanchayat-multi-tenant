@@ -100,6 +100,43 @@ exports.onGPCreated = onDocumentCreated(
           return {success: false, error: "No domain configured"};
         }
 
+        // STEP 1: Create Firebase Hosting Site
+        logger.info(`🌐 Creating Firebase hosting site: ${subdomain}`);
+        try {
+          const accessToken = await admin.credential.applicationDefault().getAccessToken();
+          const projectId = process.env.GCLOUD_PROJECT;
+          
+          const createSiteResponse = await fetch(
+              `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites`,
+              {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${accessToken.access_token}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  siteId: subdomain,
+                }),
+              },
+          );
+
+          if (createSiteResponse.ok) {
+            const siteData = await createSiteResponse.json();
+            logger.info(`✅ Hosting site created: ${subdomain}`, {siteData});
+          } else if (createSiteResponse.status === 409) {
+            // Site already exists, that's okay
+            logger.info(`ℹ️ Hosting site already exists: ${subdomain}`);
+          } else {
+            const error = await createSiteResponse.text();
+            logger.warn(`⚠️ Could not create hosting site: ${error}`);
+            // Continue anyway, maybe it exists
+          }
+        } catch (hostingError) {
+          logger.warn("⚠️ Hosting site creation error (continuing anyway):", hostingError);
+          // Don't fail the whole process if site creation fails
+        }
+
+        // STEP 2: Trigger GitHub Actions Deployment
         logger.info(`📡 Triggering GitHub Actions deployment for: ${subdomain}`);
         const octokit = new Octokit({auth: token});
         const response = await octokit.actions.createWorkflowDispatch({
