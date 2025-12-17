@@ -111,7 +111,7 @@ exports.onGPCreated = onDocumentCreated(
           const accessToken = await admin.credential.applicationDefault().getAccessToken();
           
           const createSiteResponse = await fetch(
-              `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites`,
+              `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites?siteId=${uniqueSubdomain}`,
               {
                 method: "POST",
                 headers: {
@@ -119,7 +119,7 @@ exports.onGPCreated = onDocumentCreated(
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  siteId: uniqueSubdomain,
+                  type: "DEFAULT_SITE",
                 }),
               },
           );
@@ -132,7 +132,7 @@ exports.onGPCreated = onDocumentCreated(
             logger.info(`ℹ️ Hosting site already exists: ${uniqueSubdomain}`);
           } else {
             const error = await createSiteResponse.text();
-            logger.warn(`⚠️ Could not create hosting site: ${error}`);
+            logger.warn(`⚠️ Could not create hosting site (Status ${createSiteResponse.status}): ${error}`);
             // Continue anyway, maybe it exists
           }
         } catch (hostingError) {
