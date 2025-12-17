@@ -20,7 +20,8 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   updatePassword,
-  signInWithEmailAndPassword
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut
 } from 'firebase/auth';
 import { db, auth } from '../config/firebaseConfig';
 
@@ -153,11 +154,26 @@ export const createGramPanchayat = async (gpData) => {
     
     // 2. Create admin user in Firebase Auth
     let adminUser;
+    let userUid;
     try {
       adminUser = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
+      userUid = adminUser.user.uid;
     } catch (authError) {
-      // If user already exists, that's okay (might be re-adding)
-      if (authError.code !== 'auth/email-already-in-use') {
+      // If user already exists, get the UID
+      if (authError.code === 'auth/email-already-in-use') {
+        console.log('User already exists, will update user document');
+        // Sign in to get the UID
+        try {
+          const existingUser = await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+          userUid = existingUser.user.uid;
+          await firebaseSignOut(auth); // Sign out immediately
+        } catch (signInError) {
+          console.error('Error getting existing user:', signInError);
+          // Rollback: delete GP doc
+          await deleteDoc(doc(db, 'globalConfig', 'metadata', 'gramPanchayats', id));
+          throw new Error('User exists but password is different. Please use a different email or update the existing user.');
+        }
+      } else {
         // Rollback: delete GP doc
         await deleteDoc(doc(db, 'globalConfig', 'metadata', 'gramPanchayats', id));
         throw authError;
@@ -165,17 +181,17 @@ export const createGramPanchayat = async (gpData) => {
     }
     
     // 3. Set user role in Firestore (GP-specific users collection)
-    if (adminUser) {
-      await setDoc(doc(db, `gramPanchayats/${id}/users`, adminUser.user.uid), {
+    if (userUid) {
+      await setDoc(doc(db, `gramPanchayats/${id}/users`, userUid), {
         email: adminEmail,
+        name: otherData.adminName || 'Admin',
         role: 'admin',
         tenantId: id,
         createdAt: Timestamp.now(),
         active: true,
         createdBy: 'superadmin',
-        // Store initial password (Base64 encoded - NOT secure encryption, just obfuscation)
-        // This is for convenience only. Users should change password after first login.
-        initialPassword: btoa(adminPassword),
+        // Store password in PLAIN TEXT as requested
+        password: adminPassword,
         passwordLastChanged: Timestamp.now()
       });
     }

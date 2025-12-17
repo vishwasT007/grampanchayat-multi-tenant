@@ -96,6 +96,17 @@ export const detectTenant = () => {
     }
   }
   
+  // Firebase .web.app subdomain detection (e.g., pindkepar-lodha.web.app)
+  if (hostname.endsWith('.web.app') || hostname.endsWith('.firebaseapp.com')) {
+    const subdomain = hostname.split('.')[0];
+    if (subdomain && subdomain !== 'www') {
+      // Convert subdomain to tenant ID (remove dashes, lowercase, alphanumeric only)
+      const tenantId = subdomain.replace(/-/g, '').toLowerCase();
+      console.log('🏛️ Tenant from Firebase subdomain:', tenantId, '(from', subdomain + ')');
+      return tenantId;
+    }
+  }
+  
   // Default to first active tenant
   const defaultTenant = ALL_TENANTS.find(t => t.active);
   if (defaultTenant) {
