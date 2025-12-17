@@ -479,7 +479,7 @@ export const getSystemStats = async () => {
  */
 export const logSuperAdminActivity = async (activityData) => {
   try {
-    const logRef = collection(db, 'globalConfig/activityLogs');
+    const logRef = collection(db, 'globalConfig', 'metadata', 'activityLogs');
     await setDoc(doc(logRef), {
       ...activityData,
       timestamp: activityData.timestamp || Timestamp.now()
@@ -495,7 +495,7 @@ export const logSuperAdminActivity = async (activityData) => {
  */
 export const getActivityLogs = async (limit = 50) => {
   try {
-    const logsRef = collection(db, 'globalConfig/activityLogs');
+    const logsRef = collection(db, 'globalConfig', 'metadata', 'activityLogs');
     const q = query(logsRef, orderBy('timestamp', 'desc'));
     const snapshot = await getDocs(q);
     
