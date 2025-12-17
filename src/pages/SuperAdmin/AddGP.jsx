@@ -130,8 +130,8 @@ export default function AddGP() {
         .replace(/[^a-z0-9]/g, '')
         .substring(0, 20);
       
-      // Determine domain (use custom domain if provided, otherwise subdomain)
-      const domain = formData.customDomain || `${formData.subdomain || gpId}.grampanchayat.in`;
+      // Determine domain (use custom domain if provided, otherwise FREE Firebase subdomain)
+      const domain = formData.customDomain || `${formData.subdomain || gpId}.web.app`;
       
       // Prepare data for creation
       const gpData = {
