@@ -10,6 +10,9 @@
         ],
         "superadmin": [
           "superadmin-grampanchayat"
+        ],
+        "pindkepar-lodha-gpmulti": [
+          "pindkepar-lodha-gpmulti"
         ]
       }
     }
