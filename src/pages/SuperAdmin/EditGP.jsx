@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, X } from 'lucide-react';
+import { ArrowLeft, Save, X, Eye, EyeOff } from 'lucide-react';
 import { getGramPanchayat, updateGramPanchayat } from '../../services/superAdminService';
 
 /**
@@ -15,26 +15,22 @@ function EditGP() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
-    nameHindi: '',
+    nameMarathi: '',
     district: '',
-    districtHindi: '',
-    state: '',
-    stateHindi: '',
-    block: '',
-    blockHindi: '',
-    pincode: '',
-    contactEmail: '',
-    contactPhone: '',
+    state: 'Maharashtra',
+    email: '',
+    phone: '',
     address: '',
-    addressHindi: '',
-    population: '',
-    area: '',
-    wards: '',
-    villages: '',
-    isActive: true,
+    pincode: '',
+    contactNumber: '',
+    adminEmail: '',
+    adminPassword: '',
+    adminName: '',
+    active: true,
   });
 
   useEffect(() => {
@@ -54,23 +50,18 @@ function EditGP() {
       // Populate form with existing data
       setFormData({
         name: gpData.name || '',
-        nameHindi: gpData.nameHindi || '',
+        nameMarathi: gpData.nameMarathi || '',
         district: gpData.district || '',
-        districtHindi: gpData.districtHindi || '',
-        state: gpData.state || '',
-        stateHindi: gpData.stateHindi || '',
-        block: gpData.block || '',
-        blockHindi: gpData.blockHindi || '',
-        pincode: gpData.pincode || '',
-        contactEmail: gpData.contactEmail || '',
-        contactPhone: gpData.contactPhone || '',
+        state: gpData.state || 'Maharashtra',
+        email: gpData.email || '',
+        phone: gpData.phone || '',
         address: gpData.address || '',
-        addressHindi: gpData.addressHindi || '',
-        population: gpData.population || '',
-        area: gpData.area || '',
-        wards: gpData.wards || '',
-        villages: gpData.villages || '',
-        isActive: gpData.isActive !== false,
+        pincode: gpData.pincode || '',
+        contactNumber: gpData.contactNumber || '',
+        adminEmail: gpData.adminEmail || '',
+        adminPassword: gpData.adminPassword || '',
+        adminName: gpData.adminName || '',
+        active: gpData.active !== false,
       });
     } catch (err) {
       console.error('Error loading GP:', err);
@@ -158,6 +149,7 @@ function EditGP() {
 
         {/* Edit Form */}
         <form onSubmit={handleSubmit} className="bg-white shadow-md rounded-lg p-6 space-y-6">
+          
           {/* Basic Information */}
           <div>
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Basic Information</h2>
@@ -178,26 +170,20 @@ function EditGP() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  GP Name (Hindi)
+                  GP Name (Marathi)
                 </label>
                 <input
                   type="text"
-                  name="nameHindi"
-                  value={formData.nameHindi}
+                  name="nameMarathi"
+                  value={formData.nameMarathi}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-            </div>
-          </div>
 
-          {/* Location Details */}
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Location Details</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  District (English) *
+                  District *
                 </label>
                 <input
                   type="text"
@@ -211,20 +197,7 @@ function EditGP() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  District (Hindi)
-                </label>
-                <input
-                  type="text"
-                  name="districtHindi"
-                  value={formData.districtHindi}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  State (English) *
+                  State *
                 </label>
                 <input
                   type="text"
@@ -232,60 +205,6 @@ function EditGP() {
                   value={formData.state}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  State (Hindi)
-                </label>
-                <input
-                  type="text"
-                  name="stateHindi"
-                  value={formData.stateHindi}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Block (English)
-                </label>
-                <input
-                  type="text"
-                  name="block"
-                  value={formData.block}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Block (Hindi)
-                </label>
-                <input
-                  type="text"
-                  name="blockHindi"
-                  value={formData.blockHindi}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Pincode *
-                </label>
-                <input
-                  type="text"
-                  name="pincode"
-                  value={formData.pincode}
-                  onChange={handleChange}
-                  required
-                  pattern="[0-9]{6}"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -298,12 +217,12 @@ function EditGP() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Contact Email
+                  Email
                 </label>
                 <input
                   type="email"
-                  name="contactEmail"
-                  value={formData.contactEmail}
+                  name="email"
+                  value={formData.email}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
@@ -311,20 +230,47 @@ function EditGP() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Contact Phone
+                  Phone
                 </label>
                 <input
                   type="tel"
-                  name="contactPhone"
-                  value={formData.contactPhone}
+                  name="phone"
+                  value={formData.phone}
                   onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Contact Number
+                </label>
+                <input
+                  type="tel"
+                  name="contactNumber"
+                  value={formData.contactNumber}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Pincode
+                </label>
+                <input
+                  type="text"
+                  name="pincode"
+                  value={formData.pincode}
+                  onChange={handleChange}
+                  pattern="[0-9]{6}"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Address (English)
+                  Address
                 </label>
                 <textarea
                   name="address"
@@ -334,34 +280,21 @@ function EditGP() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Address (Hindi)
-                </label>
-                <textarea
-                  name="addressHindi"
-                  value={formData.addressHindi}
-                  onChange={handleChange}
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
             </div>
           </div>
 
-          {/* Demographics */}
+          {/* Admin Credentials */}
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Demographics</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Admin Credentials</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Population
+                  Admin Name
                 </label>
                 <input
-                  type="number"
-                  name="population"
-                  value={formData.population}
+                  type="text"
+                  name="adminName"
+                  value={formData.adminName}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
@@ -369,42 +302,40 @@ function EditGP() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Area (sq km)
+                  Admin Email
                 </label>
                 <input
-                  type="number"
-                  name="area"
-                  value={formData.area}
-                  onChange={handleChange}
-                  step="0.01"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Number of Wards
-                </label>
-                <input
-                  type="number"
-                  name="wards"
-                  value={formData.wards}
+                  type="email"
+                  name="adminEmail"
+                  value={formData.adminEmail}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Number of Villages
+                  Admin Password (Plain Text)
                 </label>
-                <input
-                  type="number"
-                  name="villages"
-                  value={formData.villages}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="adminPassword"
+                    value={formData.adminPassword}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+                <p className="mt-1 text-sm text-gray-500">
+                  Password is stored in plain text for easy access
+                </p>
               </div>
             </div>
           </div>
@@ -415,13 +346,13 @@ function EditGP() {
             <div className="flex items-center">
               <input
                 type="checkbox"
-                name="isActive"
-                id="isActive"
-                checked={formData.isActive}
+                name="active"
+                id="active"
+                checked={formData.active}
                 onChange={handleChange}
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
-              <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700">
+              <label htmlFor="active" className="ml-2 block text-sm text-gray-700">
                 Active (GP is accessible to users)
               </label>
             </div>
