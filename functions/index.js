@@ -94,17 +94,21 @@ exports.onGPCreated = onDocumentCreated(
           return {success: false, error: "GitHub token not configured"};
         }
 
-        const subdomain = gpData.domain?.replace(".web.app", "").replace(".firebaseapp.com", "");
+        let subdomain = gpData.subdomain || gpData.domain?.replace(".web.app", "").replace(".firebaseapp.com", "");
         if (!subdomain) {
-          logger.error("❌ No domain configured for GP");
-          return {success: false, error: "No domain configured"};
+          logger.error("❌ No subdomain configured for GP");
+          return {success: false, error: "No subdomain configured"};
         }
 
+        // Make subdomain globally unique by using the project-specific subdomain
+        // Firebase hosting sites must be unique across ALL projects
+        const projectId = process.env.GCLOUD_PROJECT;
+        const uniqueSubdomain = subdomain; // Already should have suffix from form
+
         // STEP 1: Create Firebase Hosting Site
-        logger.info(`🌐 Creating Firebase hosting site: ${subdomain}`);
+        logger.info(`🌐 Creating Firebase hosting site: ${uniqueSubdomain}`);
         try {
           const accessToken = await admin.credential.applicationDefault().getAccessToken();
-          const projectId = process.env.GCLOUD_PROJECT;
           
           const createSiteResponse = await fetch(
               `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites`,
@@ -115,17 +119,17 @@ exports.onGPCreated = onDocumentCreated(
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  siteId: subdomain,
+                  siteId: uniqueSubdomain,
                 }),
               },
           );
 
           if (createSiteResponse.ok) {
             const siteData = await createSiteResponse.json();
-            logger.info(`✅ Hosting site created: ${subdomain}`, {siteData});
+            logger.info(`✅ Hosting site created: ${uniqueSubdomain}`, {siteData});
           } else if (createSiteResponse.status === 409) {
             // Site already exists, that's okay
-            logger.info(`ℹ️ Hosting site already exists: ${subdomain}`);
+            logger.info(`ℹ️ Hosting site already exists: ${uniqueSubdomain}`);
           } else {
             const error = await createSiteResponse.text();
             logger.warn(`⚠️ Could not create hosting site: ${error}`);
@@ -135,6 +139,9 @@ exports.onGPCreated = onDocumentCreated(
           logger.warn("⚠️ Hosting site creation error (continuing anyway):", hostingError);
           // Don't fail the whole process if site creation fails
         }
+        
+        // Use the unique subdomain for deployment
+        subdomain = uniqueSubdomain;
 
         // STEP 2: Trigger GitHub Actions Deployment
         logger.info(`📡 Triggering GitHub Actions deployment for: ${subdomain}`);

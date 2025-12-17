@@ -75,10 +75,15 @@ export default function AddGP() {
   };
 
   const autoFillSubdomain = () => {
-    const subdomain = formData.name
+    let subdomain = formData.name
       .toLowerCase()
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '');
+    
+    // Add project suffix to make it globally unique
+    // Firebase hosting site IDs must be unique across ALL Firebase projects
+    subdomain = `${subdomain}-gpmulti`;
+    
     setFormData({
       ...formData,
       subdomain: subdomain
