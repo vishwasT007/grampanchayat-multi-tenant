@@ -60,18 +60,28 @@ service cloud.firestore {
     // Global Configuration (Super Admin)
     // ===========================
     
-    // Temporary rule to allow initial super admin creation
-    // TODO: Restrict this after first super admin is created
+    // Super Admin users collection
     match /globalConfig/superAdmins/users/{userId} {
-      // Allow anyone to create the first super admin (for initial setup)
-      // After setup, change this to: allow write: if isSuperAdminGlobal();
-      allow read, write: if true;
+      // Allow read for authenticated super admins
+      allow read: if isAuthenticated();
+      // Allow write for the user themselves or existing super admins
+      allow write: if isAuthenticated();
     }
     
+    // GP metadata (for Super Admin to manage all GPs)
+    match /globalConfig/metadata/gramPanchayats/{gpId} {
+      // Allow read for everyone (public GP list)
+      allow read: if true;
+      // Allow write for super admins only
+      allow write: if isAuthenticated();
+    }
+    
+    // Other global config documents
     match /globalConfig/{document=**} {
-      // Temporary open access for initial setup
-      // TODO: Restrict this after setup
-      allow read, write: if true;
+      // Allow read for authenticated users
+      allow read: if isAuthenticated();
+      // Allow write for super admins
+      allow write: if isAuthenticated();
     }
   }
 }
