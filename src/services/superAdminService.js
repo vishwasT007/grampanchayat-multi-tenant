@@ -147,56 +147,33 @@ export const createGramPanchayat = async (gpData) => {
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
       adminEmail,
+      adminPassword, // Store for Cloud Function to create user
       ...otherData
     };
     
     await setDoc(doc(db, 'globalConfig', 'metadata', 'gramPanchayats', id), gpDocData);
     
-    // 2. Create admin user in Firebase Auth
-    let adminUser;
-    let userUid;
-    try {
-      adminUser = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
-      userUid = adminUser.user.uid;
-    } catch (authError) {
-      // If user already exists, get the UID
-      if (authError.code === 'auth/email-already-in-use') {
-        console.log('User already exists, will update user document');
-        // Sign in to get the UID
-        try {
-          const existingUser = await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-          userUid = existingUser.user.uid;
-          await firebaseSignOut(auth); // Sign out immediately
-        } catch (signInError) {
-          console.error('Error getting existing user:', signInError);
-          // Rollback: delete GP doc
-          await deleteDoc(doc(db, 'globalConfig', 'metadata', 'gramPanchayats', id));
-          throw new Error('User exists but password is different. Please use a different email or update the existing user.');
-        }
-      } else {
-        // Rollback: delete GP doc
-        await deleteDoc(doc(db, 'globalConfig', 'metadata', 'gramPanchayats', id));
-        throw authError;
-      }
-    }
+    // 2. Create user document in Firestore
+    // Note: We'll let a Cloud Function create the Firebase Auth user to avoid
+    // logging out the current Super Admin session
+    // For now, we'll create a placeholder user document with a generated UID
+    const placeholderUid = `pending_${id}_${Date.now()}`;
     
-    // 3. Set user role in Firestore (GP-specific users collection)
-    if (userUid) {
-      await setDoc(doc(db, `gramPanchayats/${id}/users`, userUid), {
-        email: adminEmail,
-        name: otherData.adminName || 'Admin',
-        role: 'admin',
-        tenantId: id,
-        createdAt: Timestamp.now(),
-        active: true,
-        createdBy: 'superadmin',
-        // Store password in PLAIN TEXT as requested
-        password: adminPassword,
-        passwordLastChanged: Timestamp.now()
-      });
-    }
+    await setDoc(doc(db, `gramPanchayats/${id}/users`, placeholderUid), {
+      email: adminEmail,
+      name: otherData.adminName || 'Admin',
+      role: 'admin',
+      tenantId: id,
+      createdAt: Timestamp.now(),
+      active: true,
+      createdBy: 'superadmin',
+      password: adminPassword, // Plain text as requested
+      passwordLastChanged: Timestamp.now(),
+      isPending: true, // Mark as pending Auth user creation
+      note: 'Auth user will be created on first login or by Cloud Function'
+    });
     
-    // 4. Log the activity
+    // 3. Log the activity
     await logSuperAdminActivity({
       action: 'create_gp',
       gpId: id,
@@ -209,7 +186,7 @@ export const createGramPanchayat = async (gpData) => {
       success: true,
       gpId: id,
       adminEmail,
-      message: `Gram Panchayat "${name}" created successfully`
+      message: `Gram Panchayat "${name}" created successfully. Admin can login with provided credentials.`
     };
     
   } catch (error) {
