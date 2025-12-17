@@ -129,19 +129,27 @@ export default function AddGP() {
     setError('');
 
     try {
-      // Generate GP ID from name
+      // Generate GP ID from name (no hyphens, alphanumeric only)
       const gpId = formData.name
         .toLowerCase()
         .replace(/[^a-z0-9]/g, '')
         .substring(0, 20);
       
+      // Generate subdomain based on GP ID + suffix to ensure consistency
+      // This ensures: subdomain.replace(/-/g, '') === gpId + "gpmulti"
+      const generatedSubdomain = `${gpId}-gpmulti`;
+      
+      // Use the generated subdomain if user didn't provide custom one
+      const finalSubdomain = formData.subdomain || generatedSubdomain;
+      
       // Determine domain (use custom domain if provided, otherwise FREE Firebase subdomain)
-      const domain = formData.customDomain || `${formData.subdomain || gpId}.web.app`;
+      const domain = formData.customDomain || `${finalSubdomain}.web.app`;
       
       // Prepare data for creation
       const gpData = {
         ...formData,
         id: gpId,
+        subdomain: finalSubdomain,
         domain: domain
       };
       
