@@ -56,6 +56,7 @@ import SuperAdminLogin from './pages/SuperAdmin/Login';
 import SuperAdminDashboard from './pages/SuperAdmin/Dashboard';
 import AddGP from './pages/SuperAdmin/AddGP';
 import ManageGPs from './pages/SuperAdmin/ManageGPs';
+import ViewGP from './pages/SuperAdmin/ViewGP';
 import ManageUsers from './pages/SuperAdmin/ManageUsers';
 
 function App() {
@@ -98,6 +99,14 @@ function App() {
                     element={
                       <SuperAdminProtectedRoute>
                         <AddGP />
+                      </SuperAdminProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/superadmin/gram-panchayats/:id"
+                    element={
+                      <SuperAdminProtectedRoute>
+                        <ViewGP />
                       </SuperAdminProtectedRoute>
                     }
                   />

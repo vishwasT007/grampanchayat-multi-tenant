@@ -515,3 +515,79 @@ export const generateGPId = (name) => {
     .replace(/[^a-z0-9]/g, '')
     .substring(0, 20);
 };
+
+/**
+ * Get all users for a specific GP
+ */
+export const getGPUsers = async (gpId) => {
+  try {
+    const usersRef = collection(db, `gramPanchayats/${gpId}/users`);
+    const snapshot = await getDocs(usersRef);
+    
+    const users = [];
+    snapshot.forEach(doc => {
+      users.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    // Sort by creation date
+    return users.sort((a, b) => {
+      const dateA = a.createdAt?.toDate?.() || new Date(0);
+      const dateB = b.createdAt?.toDate?.() || new Date(0);
+      return dateB - dateA;
+    });
+    
+  } catch (error) {
+    console.error('Error getting GP users:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get statistics for a specific GP
+ */
+export const getGPStats = async (gpId) => {
+  try {
+    const stats = {
+      totalUsers: 0,
+      totalNotices: 0,
+      totalGrievances: 0,
+      storageUsed: 0
+    };
+
+    // Count users
+    try {
+      const usersSnapshot = await getDocs(collection(db, `gramPanchayats/${gpId}/users`));
+      stats.totalUsers = usersSnapshot.size;
+    } catch (err) {
+      console.error('Error counting users:', err);
+    }
+
+    // Count notices
+    try {
+      const noticesSnapshot = await getDocs(collection(db, `gramPanchayats/${gpId}/notices`));
+      stats.totalNotices = noticesSnapshot.size;
+    } catch (err) {
+      console.error('Error counting notices:', err);
+    }
+
+    // Count grievances
+    try {
+      const grievancesSnapshot = await getDocs(collection(db, `gramPanchayats/${gpId}/grievances`));
+      stats.totalGrievances = grievancesSnapshot.size;
+    } catch (err) {
+      console.error('Error counting grievances:', err);
+    }
+
+    // Note: Storage calculation would require Firebase Storage API
+    // For now, we'll leave it at 0
+
+    return stats;
+    
+  } catch (error) {
+    console.error('Error getting GP stats:', error);
+    return null;
+  }
+};
