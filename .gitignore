@@ -32,3 +32,4 @@ firebase-token.txt
 *.njsproj
 *.sln
 *.sw?
+functions/.env*
