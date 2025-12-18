@@ -41,6 +41,17 @@ jobs:
             echo "subdomain=${{ github.event.client_payload.gp_subdomain }}" >> $GITHUB_OUTPUT
           fi
 
+      - name: Normalize subdomain
+        id: normalize_subdomain
+        run: |
+          GP_SUBDOMAIN="${{ steps.get_subdomain.outputs.subdomain }}"
+          # Strip trailing '-gpmulti' suffix if present, then remove all hyphens, then re-append suffix
+          BASE="${GP_SUBDOMAIN%-gpmulti}"
+          BASE="${BASE//-/}"
+          NORMALIZED="${BASE}-gpmulti"
+          echo "normalized=${NORMALIZED}" >> $GITHUB_OUTPUT
+          echo "Using normalized subdomain: ${NORMALIZED} (from ${GP_SUBDOMAIN})"
+
       - name: Setup Firebase CLI
         run: npm install -g firebase-tools
 
@@ -48,7 +59,7 @@ jobs:
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
-          GP_SUBDOMAIN="${{ steps.get_subdomain.outputs.subdomain }}"
+          GP_SUBDOMAIN="${{ steps.normalize_subdomain.outputs.normalized }}"
           
           # Try to create site, ignore if already exists
           firebase hosting:sites:create "$GP_SUBDOMAIN" --token "$FIREBASE_TOKEN" 2>&1 || echo "Site may already exist"
@@ -57,12 +68,12 @@ jobs:
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
-          GP_SUBDOMAIN="${{ steps.get_subdomain.outputs.subdomain }}"
+          GP_SUBDOMAIN="${{ steps.normalize_subdomain.outputs.normalized }}"
           firebase target:apply hosting "$GP_SUBDOMAIN" "$GP_SUBDOMAIN" --token "$FIREBASE_TOKEN"
 
       - name: Update firebase.json
         run: |
-          GP_SUBDOMAIN="${{ steps.get_subdomain.outputs.subdomain }}"
+          GP_SUBDOMAIN="${{ steps.normalize_subdomain.outputs.normalized }}"
           
           # Check if configuration already exists
           if grep -q "\"target\": \"$GP_SUBDOMAIN\"" firebase.json; then
@@ -136,20 +147,20 @@ jobs:
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
-          GP_SUBDOMAIN="${{ steps.get_subdomain.outputs.subdomain }}"
+          GP_SUBDOMAIN="${{ steps.normalize_subdomain.outputs.normalized }}"
           firebase deploy --only hosting:"$GP_SUBDOMAIN" --token "$FIREBASE_TOKEN"
 
       - name: Commit firebase.json changes (if any)
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore: Add hosting config for ${{ steps.get_subdomain.outputs.subdomain }}"
+          commit_message: "chore: Add hosting config for ${{ steps.normalize_subdomain.outputs.normalized }}"
           file_pattern: 'firebase.json .firebaserc'
           commit_user_name: 'GitHub Actions Bot'
           commit_user_email: 'actions@github.com'
 
       - name: Success notification
         run: |
-          GP_SUBDOMAIN="${{ steps.get_subdomain.outputs.subdomain }}"
+          GP_SUBDOMAIN="${{ steps.normalize_subdomain.outputs.normalized }}"
           echo "✅ GP deployed successfully!"
           echo "🌐 Live at: https://$GP_SUBDOMAIN.web.app"
           echo ""
