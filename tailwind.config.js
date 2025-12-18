@@ -6,6 +6,20 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: [
+          'Inter',
+          'Noto Sans Devanagari',
+          'ui-sans-serif',
+          'system-ui',
+          '-apple-system',
+          'Segoe UI',
+          'Roboto',
+          'Helvetica',
+          'Arial',
+          'sans-serif'
+        ],
+      },
       colors: {
         // Indian Flag Theme Colors
         primary: {
