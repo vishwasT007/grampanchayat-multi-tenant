@@ -62,27 +62,33 @@ jobs:
           echo "$FIREBASE_SERVICE_ACCOUNT" > /tmp/firebase_sa.json
           echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/firebase_sa.json" >> $GITHUB_ENV
 
+      - name: Set Firebase Project ID
+        env:
+          FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+        run: |
+          echo "FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}" >> $GITHUB_ENV
+
       - name: Create Firebase hosting site (ensure unique)
         id: create_site
         run: |
           BASE_NORMALIZED="${{ steps.normalize_subdomain.outputs.normalized }}"
           CANDIDATE="$BASE_NORMALIZED"
           echo "Attempting to create hosting site: $CANDIDATE"
-          if firebase hosting:sites:create "$CANDIDATE" 2>&1; then
+          if firebase hosting:sites:create "$CANDIDATE" --project "$FIREBASE_PROJECT_ID" 2>&1; then
             echo "site_id=$CANDIDATE" >> $GITHUB_OUTPUT
           else
             echo "Initial site creation failed (possibly reserved globally). Generating unique suffix..."
             SUFFIX=$(head -c 256 /dev/urandom | tr -dc 'a-z0-9' | head -c 6)
             CANDIDATE="${BASE_NORMALIZED}-${SUFFIX}"
             echo "Retrying with: $CANDIDATE"
-            firebase hosting:sites:create "$CANDIDATE" 2>&1 || echo "Site may already exist"
+            firebase hosting:sites:create "$CANDIDATE" --project "$FIREBASE_PROJECT_ID" 2>&1 || echo "Site may already exist"
             echo "site_id=$CANDIDATE" >> $GITHUB_OUTPUT
           fi
 
       - name: Configure hosting target
         run: |
           SITE_ID="${{ steps.create_site.outputs.site_id }}"
-          firebase target:apply hosting "$SITE_ID" "$SITE_ID"
+          firebase target:apply hosting "$SITE_ID" "$SITE_ID" --project "$FIREBASE_PROJECT_ID"
 
       - name: Update firebase.json
         run: |
@@ -159,7 +165,7 @@ jobs:
       - name: Deploy to Firebase Hosting
         run: |
           SITE_ID="${{ steps.create_site.outputs.site_id }}"
-          firebase deploy --only hosting:"$SITE_ID"
+          firebase deploy --only hosting:"$SITE_ID" --project "$FIREBASE_PROJECT_ID"
 
       - name: Update Firestore domain with final site
         env:
