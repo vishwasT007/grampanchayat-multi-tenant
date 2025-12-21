@@ -48,6 +48,38 @@ export const ALL_TENANTS = [
 ];
 
 /**
+ * Normalize Firebase Hosting site subdomain to a tenant ID.
+ *
+ * Supports:
+ * - <gpId>-gpmulti
+ * - <gpId>-gpmulti-<randomSuffix>
+ *
+ * NOTE: We preserve hyphens in gpId. Hyphen removal previously caused tenant mismatches
+ * (e.g. `pindkeparlodha-gpmulti-y757r4` becoming `pindkeparlodhay757r4`).
+ */
+export const normalizeFirebaseHostingSubdomainToTenantId = (subdomain) => {
+  if (!subdomain || typeof subdomain !== 'string') return '';
+  let s = subdomain.toLowerCase();
+
+  // Strip the `-gpmulti` marker and any suffix after it.
+  // Examples:
+  // - pindkepar-lodha-gpmulti -> pindkepar-lodha
+  // - pindkepar-lodha-gpmulti-y757r4 -> pindkepar-lodha
+  if (s.includes('-gpmulti')) {
+    s = s.split('-gpmulti')[0];
+  }
+
+  // Trim any accidental trailing hyphens
+  s = s.replace(/-+$/g, '');
+
+  // If you ever have old `-gpmulti` without the leading dash, handle it too.
+  // (e.g. `pindkeparlodha-gpmulti` is already covered above)
+  s = s.replace(/gpmulti$/g, '').replace(/-+$/g, '');
+
+  return s;
+};
+
+/**
  * Detect tenant from domain or query parameter
  * Priority: URL query param > Domain mapping > Default
  */
@@ -100,11 +132,7 @@ export const detectTenant = () => {
   if (hostname.endsWith('.web.app') || hostname.endsWith('.firebaseapp.com')) {
     const subdomain = hostname.split('.')[0];
     if (subdomain && subdomain !== 'www') {
-      // Convert subdomain to tenant ID
-      // First remove the '-gpmulti' suffix, THEN remove remaining hyphens
-      // Example: 'pindkeparlodha-gpmulti' -> 'pindkeparlodha' -> 'pindkeparlodha'
-      // Example: 'pindkepar-lodha-gpmulti' -> 'pindkepar-lodha' -> 'pindkeparlodha'
-      let tenantId = subdomain.replace('-gpmulti', '').replace(/-/g, '').toLowerCase();
+      const tenantId = normalizeFirebaseHostingSubdomainToTenantId(subdomain);
       console.log('🏛️ Tenant from Firebase subdomain:', tenantId, '(from', subdomain + ')');
       return tenantId;
     }
