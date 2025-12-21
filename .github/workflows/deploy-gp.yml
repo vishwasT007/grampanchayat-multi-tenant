@@ -59,8 +59,14 @@ jobs:
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
-          echo "$FIREBASE_SERVICE_ACCOUNT" > /tmp/firebase_sa.json
-          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/firebase_sa.json" >> $GITHUB_ENV
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ] || [ "$FIREBASE_SERVICE_ACCOUNT" = "{}" ]; then
+            echo "No service account provided. Will fall back to FIREBASE_TOKEN if available."
+            echo "USE_TOKEN_FALLBACK=true" >> $GITHUB_ENV
+          else
+            echo "$FIREBASE_SERVICE_ACCOUNT" > /tmp/firebase_sa.json
+            echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/firebase_sa.json" >> $GITHUB_ENV
+            echo "USE_TOKEN_FALLBACK=false" >> $GITHUB_ENV
+          fi
 
       - name: Set Firebase Project ID
         env:
@@ -70,25 +76,45 @@ jobs:
 
       - name: Create Firebase hosting site (ensure unique)
         id: create_site
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
           BASE_NORMALIZED="${{ steps.normalize_subdomain.outputs.normalized }}"
           CANDIDATE="$BASE_NORMALIZED"
           echo "Attempting to create hosting site: $CANDIDATE"
-          if firebase hosting:sites:create "$CANDIDATE" --project "$FIREBASE_PROJECT_ID" 2>&1; then
+          if [ "$USE_TOKEN_FALLBACK" = "true" ]; then
+            CREATE_CMD="firebase hosting:sites:create \"$CANDIDATE\" --project \"$FIREBASE_PROJECT_ID\" --token \"$FIREBASE_TOKEN\""
+          else
+            CREATE_CMD="firebase hosting:sites:create \"$CANDIDATE\" --project \"$FIREBASE_PROJECT_ID\""
+          fi
+          echo "Running: $CREATE_CMD"
+          if sh -c "$CREATE_CMD" 2>&1; then
             echo "site_id=$CANDIDATE" >> $GITHUB_OUTPUT
           else
             echo "Initial site creation failed (possibly reserved globally). Generating unique suffix..."
             SUFFIX=$(head -c 256 /dev/urandom | tr -dc 'a-z0-9' | head -c 6)
             CANDIDATE="${BASE_NORMALIZED}-${SUFFIX}"
             echo "Retrying with: $CANDIDATE"
-            firebase hosting:sites:create "$CANDIDATE" --project "$FIREBASE_PROJECT_ID" 2>&1 || echo "Site may already exist"
+            if [ "$USE_TOKEN_FALLBACK" = "true" ]; then
+              FALLBACK_CMD="firebase hosting:sites:create \"$CANDIDATE\" --project \"$FIREBASE_PROJECT_ID\" --token \"$FIREBASE_TOKEN\""
+            else
+              FALLBACK_CMD="firebase hosting:sites:create \"$CANDIDATE\" --project \"$FIREBASE_PROJECT_ID\""
+            fi
+            echo "Running: $FALLBACK_CMD"
+            sh -c "$FALLBACK_CMD" 2>&1 || echo "Site may already exist"
             echo "site_id=$CANDIDATE" >> $GITHUB_OUTPUT
           fi
 
       - name: Configure hosting target
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
           SITE_ID="${{ steps.create_site.outputs.site_id }}"
-          firebase target:apply hosting "$SITE_ID" "$SITE_ID" --project "$FIREBASE_PROJECT_ID"
+          if [ "$USE_TOKEN_FALLBACK" = "true" ]; then
+            firebase target:apply hosting "$SITE_ID" "$SITE_ID" --project "$FIREBASE_PROJECT_ID" --token "$FIREBASE_TOKEN"
+          else
+            firebase target:apply hosting "$SITE_ID" "$SITE_ID" --project "$FIREBASE_PROJECT_ID"
+          fi
 
       - name: Update firebase.json
         run: |
@@ -163,9 +189,15 @@ jobs:
         run: npm run build:gp
 
       - name: Deploy to Firebase Hosting
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
           SITE_ID="${{ steps.create_site.outputs.site_id }}"
-          firebase deploy --only hosting:"$SITE_ID" --project "$FIREBASE_PROJECT_ID"
+          if [ "$USE_TOKEN_FALLBACK" = "true" ]; then
+            firebase deploy --only hosting:"$SITE_ID" --project "$FIREBASE_PROJECT_ID" --token "$FIREBASE_TOKEN"
+          else
+            firebase deploy --only hosting:"$SITE_ID" --project "$FIREBASE_PROJECT_ID"
+          fi
 
       - name: Update Firestore domain with final site
         env:
