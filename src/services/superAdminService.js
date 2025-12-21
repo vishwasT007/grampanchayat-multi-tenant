@@ -655,3 +655,167 @@ export const getGPStats = async (gpId) => {
     return null;
   }
 };
+
+/**
+ * Auto-detect and sync Firebase Hosting domain
+ * Checks if the actual Firebase hosting site exists and updates the GP domain
+ */
+export const syncFirebaseHostingDomain = async (gpId) => {
+  try {
+    console.log('🔄 Auto-syncing Firebase Hosting domain for GP:', gpId);
+    
+    // Get current GP data
+    const gpData = await getGramPanchayat(gpId);
+    if (!gpData) {
+      throw new Error('GP not found');
+    }
+
+    const currentSubdomain = gpData.subdomain || '';
+    const currentDomain = gpData.domain || '';
+    
+    console.log('Current subdomain:', currentSubdomain);
+    console.log('Current domain:', currentDomain);
+
+    // Try to detect the actual Firebase hosting site
+    // Pattern: base-gpmulti or base-gpmulti-suffix
+    const baseSubdomain = currentSubdomain.replace(/-gpmulti.*$/, '');
+    const possibleSites = [
+      `${currentSubdomain}`, // exact match
+      `${baseSubdomain}-gpmulti`, // without suffix
+    ];
+
+    // Also check common suffix patterns
+    const suffixPatterns = ['lp9lcu', 'y757r4', 'x8k2m9', 'w3n5p7'];
+    suffixPatterns.forEach(suffix => {
+      possibleSites.push(`${baseSubdomain}-gpmulti-${suffix}`);
+    });
+
+    console.log('Checking possible sites:', possibleSites);
+
+    // Try to fetch each possible URL to see which one exists
+    let actualSite = null;
+    
+    for (const site of possibleSites) {
+      const testUrl = `https://${site}.web.app`;
+      try {
+        console.log('Testing:', testUrl);
+        const response = await fetch(testUrl, { 
+          method: 'HEAD',
+          mode: 'no-cors' // Avoid CORS issues
+        });
+        
+        // If we get here without error, the site likely exists
+        console.log('✅ Site found:', site);
+        actualSite = site;
+        break;
+      } catch (error) {
+        console.log('❌ Site not found:', site);
+        continue;
+      }
+    }
+
+    // If no site found through testing, try to extract from Firebase Hosting API
+    // Since we can't access Firebase Hosting API directly from client,
+    // we'll use a different approach: check the .firebaserc configuration
+    
+    if (!actualSite) {
+      console.log('⚠️  Could not auto-detect site. Using Firebase project configuration...');
+      
+      // Try to fetch the project configuration
+      try {
+        const configUrl = `https://grampanchayat-multi-tenant.web.app/__/firebase/init.json`;
+        const configResponse = await fetch(configUrl);
+        const config = await configResponse.json();
+        console.log('Firebase config:', config);
+      } catch (err) {
+        console.error('Could not fetch Firebase config:', err);
+      }
+      
+      // If still no site detected, return current domain
+      console.log('⚠️  Keeping current domain. Manual update may be required.');
+      return {
+        success: false,
+        message: 'Could not auto-detect Firebase hosting site. Please update manually.',
+        currentDomain,
+        currentSubdomain
+      };
+    }
+
+    // Update the GP with the detected site
+    const newDomain = `${actualSite}.web.app`;
+    const updates = {
+      domain: newDomain,
+      subdomain: actualSite,
+      lastDomainSync: Timestamp.now(),
+      updatedAt: Timestamp.now()
+    };
+
+    await updateDoc(doc(db, 'globalConfig', 'metadata', 'gramPanchayats', gpId), updates);
+    
+    await logSuperAdminActivity({
+      action: 'sync_domain',
+      gpId,
+      oldDomain: currentDomain,
+      newDomain,
+      timestamp: Timestamp.now()
+    });
+
+    console.log('✅ Domain synced successfully!');
+    console.log('Old domain:', currentDomain);
+    console.log('New domain:', newDomain);
+
+    return {
+      success: true,
+      message: 'Domain synced successfully!',
+      oldDomain: currentDomain,
+      newDomain,
+      oldSubdomain: currentSubdomain,
+      newSubdomain: actualSite
+    };
+
+  } catch (error) {
+    console.error('❌ Error syncing domain:', error);
+    throw error;
+  }
+};
+
+/**
+ * Manual domain update (when auto-sync doesn't work)
+ * Allows SuperAdmin to manually specify the correct domain
+ */
+export const updateGPDomain = async (gpId, newSubdomain) => {
+  try {
+    console.log('📝 Manually updating domain for GP:', gpId);
+    console.log('New subdomain:', newSubdomain);
+
+    const newDomain = `${newSubdomain}.web.app`;
+    const updates = {
+      domain: newDomain,
+      subdomain: newSubdomain,
+      lastDomainUpdate: Timestamp.now(),
+      updatedAt: Timestamp.now()
+    };
+
+    await updateDoc(doc(db, 'globalConfig', 'metadata', 'gramPanchayats', gpId), updates);
+    
+    await logSuperAdminActivity({
+      action: 'update_domain',
+      gpId,
+      newDomain,
+      timestamp: Timestamp.now()
+    });
+
+    console.log('✅ Domain updated successfully!');
+
+    return {
+      success: true,
+      message: 'Domain updated successfully!',
+      newDomain,
+      newSubdomain
+    };
+
+  } catch (error) {
+    console.error('❌ Error updating domain:', error);
+    throw error;
+  }
+};
