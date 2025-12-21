@@ -75,18 +75,18 @@ export default function AddGP() {
   };
 
   const autoFillSubdomain = () => {
-    let subdomain = formData.name
+    // Generate gpId (alphanumeric only, no hyphens) from name
+    const gpId = formData.name
       .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '');
-    
-    // Add project suffix to make it globally unique
-    // Firebase hosting site IDs must be unique across ALL Firebase projects
-    subdomain = `${subdomain}-gpmulti`;
-    
+      .replace(/[^a-z0-9]/g, '')
+      .substring(0, 20);
+
+    // Normalized subdomain format: gpId + '-gpmulti'
+    const normalized = `${gpId}-gpmulti`;
+
     setFormData({
       ...formData,
-      subdomain: subdomain
+      subdomain: normalized
     });
   };
 
@@ -136,11 +136,20 @@ export default function AddGP() {
         .substring(0, 20);
       
       // Generate subdomain based on GP ID + suffix to ensure consistency
-      // This ensures: subdomain.replace(/-/g, '') === gpId + "gpmulti"
+      // Normalized rule: remove '-gpmulti' then hyphens, then append '-gpmulti'
       const generatedSubdomain = `${gpId}-gpmulti`;
-      
-      // Use the generated subdomain if user didn't provide custom one
-      const finalSubdomain = formData.subdomain || generatedSubdomain;
+
+      // If user provided a subdomain, normalize it; else use generated
+      let finalSubdomain = generatedSubdomain;
+      if (formData.subdomain) {
+        const base = formData.subdomain
+          .toLowerCase()
+          .replace(/-gpmulti$/, '')
+          .replace(/-/g, '')
+          .replace(/[^a-z0-9]/g, '')
+          .substring(0, 20);
+        finalSubdomain = `${base}-gpmulti`;
+      }
       
       // Determine domain (use custom domain if provided, otherwise FREE Firebase subdomain)
       const domain = formData.customDomain || `${finalSubdomain}.web.app`;
@@ -516,7 +525,7 @@ export default function AddGP() {
                     name="subdomain"
                     value={formData.subdomain}
                     onChange={handleChange}
-                    placeholder="pindkepar-lodha"
+                    placeholder="pindkeparlodha-gpmulti"
                     required
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   />
@@ -530,7 +539,7 @@ export default function AddGP() {
                   </button>
                 </div>
                 <p className="text-sm text-gray-600 mt-1">
-                  ✅ <strong>FREE Firebase URL:</strong> <code className="bg-gray-100 px-2 py-1 rounded">{formData.subdomain || 'subdomain'}.web.app</code>
+                  ✅ <strong>FREE Firebase URL:</strong> <code className="bg-gray-100 px-2 py-1 rounded">{formData.subdomain || 'gpname-gpmulti'}.web.app</code>
                 </p>
                 <p className="text-sm text-gray-500 mt-1">
                   This will be your GP's website address. You can create a Firebase hosting site for this later.
