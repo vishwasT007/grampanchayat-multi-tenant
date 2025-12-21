@@ -123,18 +123,35 @@ export const getGramPanchayat = async (gpId) => {
  */
 export const createGramPanchayat = async (gpData) => {
   try {
-    const { id, name, nameMarathi, domain, adminEmail, adminPassword, ...otherData } = gpData;
+    const { id, name, nameMarathi, domain, adminEmail, adminPassword, adminName, ...otherData } = gpData;
     
     // Validate required fields
     if (!id || !name || !domain || !adminEmail || !adminPassword) {
-      throw new Error('Missing required fields');
+      throw new Error('Missing required fields: id, name, domain, adminEmail, adminPassword');
+    }
+    
+    if (!adminName) {
+      throw new Error('Admin name is required');
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(adminEmail)) {
+      throw new Error('Invalid email format');
+    }
+    
+    // Validate password length
+    if (adminPassword.length < 6) {
+      throw new Error('Password must be at least 6 characters');
     }
     
     // Check if GP ID already exists
     const existingGP = await getDoc(doc(db, 'globalConfig', 'metadata', 'gramPanchayats', id));
     if (existingGP.exists()) {
-      throw new Error(`Gram Panchayat with ID "${id}" already exists`);
+      throw new Error(`Gram Panchayat with ID "${id}" already exists. Please use a different name.`);
     }
+    
+    console.log('✅ Creating GP:', { id, name, domain, adminEmail });
     
     // 1. Add GP to globalConfig
     const gpDocData = {
@@ -142,36 +159,38 @@ export const createGramPanchayat = async (gpData) => {
       name,
       nameMarathi: nameMarathi || '',
       domain,
+      subdomain: otherData.subdomain || domain.replace('.web.app', ''),
       domainStatus: 'pending',
       active: true,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
       adminEmail,
       adminPassword, // Store for Cloud Function to create user
+      adminName,
       ...otherData
     };
     
     await setDoc(doc(db, 'globalConfig', 'metadata', 'gramPanchayats', id), gpDocData);
+    console.log('✅ GP document created in Firestore');
     
-    // 2. Create user document in Firestore
-    // Note: We'll let a Cloud Function create the Firebase Auth user to avoid
-    // logging out the current Super Admin session
-    // For now, we'll create a placeholder user document with a generated UID
+    // 2. Create placeholder user document in Firestore
+    // The actual Firebase Auth user will be created by Cloud Function on first login
     const placeholderUid = `pending_${id}_${Date.now()}`;
     
     await setDoc(doc(db, `gramPanchayats/${id}/users`, placeholderUid), {
       email: adminEmail,
-      name: otherData.adminName || 'Admin',
+      name: adminName,
       role: 'admin',
       tenantId: id,
       createdAt: Timestamp.now(),
       active: true,
       createdBy: 'superadmin',
-      password: adminPassword, // Plain text as requested
+      password: adminPassword, // Plain text for Cloud Function to verify
       passwordLastChanged: Timestamp.now(),
       isPending: true, // Mark as pending Auth user creation
       note: 'Auth user will be created on first login or by Cloud Function'
     });
+    console.log('✅ Placeholder user document created');
     
     // 3. Log the activity
     await logSuperAdminActivity({
@@ -181,6 +200,7 @@ export const createGramPanchayat = async (gpData) => {
       adminEmail,
       timestamp: Timestamp.now()
     });
+    console.log('✅ Activity logged');
     
     return {
       success: true,
@@ -190,7 +210,11 @@ export const createGramPanchayat = async (gpData) => {
     };
     
   } catch (error) {
-    console.error('Error creating GP:', error);
+    console.error('❌ Error creating GP:', error);
+    // Re-throw with more context
+    if (error.code === 'permission-denied') {
+      throw new Error('Permission denied. Please ensure you are logged in as a Super Admin.');
+    }
     throw error;
   }
 };

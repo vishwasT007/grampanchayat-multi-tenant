@@ -72,16 +72,16 @@ service cloud.firestore {
     match /globalConfig/metadata/gramPanchayats/{gpId} {
       // Allow read for everyone (public GP list)
       allow read: if true;
-      // Allow write for super admins only
-      allow write: if isAuthenticated();
+      // Allow write for super admins ONLY - CRITICAL SECURITY
+      allow write: if isSuperAdmin();
     }
     
     // Other global config documents
     match /globalConfig/{document=**} {
       // Allow read for authenticated users
       allow read: if isAuthenticated();
-      // Allow write for super admins
-      allow write: if isAuthenticated();
+      // Allow write for super admins ONLY - CRITICAL SECURITY
+      allow write: if isSuperAdmin();
     }
   }
 }

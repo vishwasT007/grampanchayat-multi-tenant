@@ -179,7 +179,27 @@ export default function AddGP() {
       
     } catch (err) {
       console.error('Error creating GP:', err);
-      setError(err.message || 'Failed to create Gram Panchayat. Please try again.');
+      
+      // Provide user-friendly error messages
+      let errorMessage = 'Failed to create Gram Panchayat. ';
+      
+      if (err.code === 'permission-denied') {
+        errorMessage += 'Permission denied. Please ensure you are logged in as a Super Admin and Firestore rules are deployed.';
+      } else if (err.message) {
+        errorMessage += err.message;
+      } else {
+        errorMessage += 'Please try again or contact support.';
+      }
+      
+      // Check for common issues
+      if (err.message && err.message.includes('already exists')) {
+        errorMessage = `A Gram Panchayat with a similar name already exists. Please choose a different name.`;
+      }
+      
+      setError(errorMessage);
+      
+      // Scroll to top to show error
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setLoading(false);
     }
