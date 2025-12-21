@@ -79,7 +79,24 @@ jobs:
         env:
           FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
         run: |
+          if [ -z "$FIREBASE_PROJECT_ID" ]; then
+            echo "❌ Missing required secret: VITE_FIREBASE_PROJECT_ID"
+            exit 1
+          fi
+          echo "Using Firebase project: $FIREBASE_PROJECT_ID"
           echo "FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}" >> $GITHUB_ENV
+
+      - name: Firebase CLI debug (project + auth)
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          echo "USE_TOKEN_FALLBACK=$USE_TOKEN_FALLBACK"
+          echo "FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID"
+          if [ "$USE_TOKEN_FALLBACK" = "true" ]; then
+            firebase projects:list --token "$FIREBASE_TOKEN" 1>/dev/null
+          else
+            firebase projects:list 1>/dev/null
+          fi
 
       - name: Create Firebase hosting site (ensure unique)
         id: create_site
@@ -200,6 +217,10 @@ jobs:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
           SITE_ID="${{ steps.create_site.outputs.site_id }}"
+          if [ -z "$SITE_ID" ]; then
+            echo "❌ Missing SITE_ID from create_site step"
+            exit 1
+          fi
           if [ "$USE_TOKEN_FALLBACK" = "true" ]; then
             firebase deploy --only hosting:"$SITE_ID" --project "$FIREBASE_PROJECT_ID" --token "$FIREBASE_TOKEN"
           else
