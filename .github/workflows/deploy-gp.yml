@@ -45,10 +45,13 @@ jobs:
         id: normalize_subdomain
         run: |
           GP_SUBDOMAIN="${{ steps.get_subdomain.outputs.subdomain }}"
-          # Strip trailing '-gpmulti' suffix if present, then remove all hyphens, then re-append suffix
-          BASE="${GP_SUBDOMAIN%-gpmulti}"
-          BASE="${BASE//-/}"
-          NORMALIZED="${BASE}-gpmulti"
+          # Ensure subdomain ends with -gpmulti
+          # Do NOT remove hyphens from the base name - preserve them!
+          if [[ "$GP_SUBDOMAIN" == *-gpmulti ]]; then
+            NORMALIZED="$GP_SUBDOMAIN"
+          else
+            NORMALIZED="${GP_SUBDOMAIN}-gpmulti"
+          fi
           echo "normalized=${NORMALIZED}" >> $GITHUB_OUTPUT
           echo "Using normalized subdomain: ${NORMALIZED} (from ${GP_SUBDOMAIN})"
 
@@ -239,8 +242,9 @@ jobs:
           npm install firebase-admin --no-save
           NORMALIZED="${{ steps.normalize_subdomain.outputs.normalized }}"
           SITE_ID="${{ steps.create_site.outputs.site_id }}"
-          BASE="${NORMALIZED%-gpmulti}"
-          GP_ID="${BASE//-/}"
+          # Extract GP ID by removing -gpmulti and any suffix (e.g., -y757r4)
+          # Example: pindkeparlodha-gpmulti-y757r4 -> pindkeparlodha
+          GP_ID="${SITE_ID%-gpmulti*}"
           # Ensure /tmp/firebase_sa.json exists; if base64 secret provided, it was decoded earlier
           if [ ! -s "/tmp/firebase_sa.json" ]; then
             if [ -n "$FIREBASE_SERVICE_ACCOUNT_BASE64" ]; then
