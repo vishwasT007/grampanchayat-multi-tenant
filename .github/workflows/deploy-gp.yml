@@ -45,15 +45,11 @@ jobs:
         id: normalize_subdomain
         run: |
           GP_SUBDOMAIN="${{ steps.get_subdomain.outputs.subdomain }}"
-          # Ensure subdomain ends with -gpmulti
-          # Do NOT remove hyphens from the base name - preserve them!
-          if [[ "$GP_SUBDOMAIN" == *-gpmulti ]]; then
-            NORMALIZED="$GP_SUBDOMAIN"
-          else
-            NORMALIZED="${GP_SUBDOMAIN}-gpmulti"
-          fi
+          # Use subdomain as-is from UI (already normalized by AddGP.jsx)
+          # No longer append -gpmulti automatically
+          NORMALIZED="$GP_SUBDOMAIN"
           echo "normalized=${NORMALIZED}" >> $GITHUB_OUTPUT
-          echo "Using normalized subdomain: ${NORMALIZED} (from ${GP_SUBDOMAIN})"
+          echo "Using subdomain: ${NORMALIZED}"
 
       - name: Setup Firebase CLI
         run: npm install -g firebase-tools
@@ -242,9 +238,22 @@ jobs:
           npm install firebase-admin --no-save
           NORMALIZED="${{ steps.normalize_subdomain.outputs.normalized }}"
           SITE_ID="${{ steps.create_site.outputs.site_id }}"
-          # Extract GP ID by removing -gpmulti and any suffix (e.g., -y757r4)
-          # Example: pindkeparlodha-gpmulti-y757r4 -> pindkeparlodha
-          GP_ID="${SITE_ID%-gpmulti*}"
+          
+          # Extract GP ID from site ID
+          # Supports both patterns:
+          # - gp-pindkeparlodha(-suffix) -> pindkeparlodha
+          # - pindkeparlodha-gpmulti(-suffix) -> pindkeparlodha
+          if [[ "$SITE_ID" == gp-* ]]; then
+            # gp-<id> pattern: remove gp- prefix and any Firebase suffix
+            GP_ID="${SITE_ID#gp-}"
+            GP_ID="${GP_ID%%-*}"  # Remove any suffix after first hyphen
+          else
+            # <id>-gpmulti pattern: remove -gpmulti and any suffix
+            GP_ID="${SITE_ID%-gpmulti*}"
+          fi
+          
+          echo "Extracted GP ID: $GP_ID from site: $SITE_ID"
+          
           # Ensure /tmp/firebase_sa.json exists; if base64 secret provided, it was decoded earlier
           if [ ! -s "/tmp/firebase_sa.json" ]; then
             if [ -n "$FIREBASE_SERVICE_ACCOUNT_BASE64" ]; then
