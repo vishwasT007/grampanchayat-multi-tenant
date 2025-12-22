@@ -21,14 +21,16 @@ import {
   EyeOff,
   Copy,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  Loader
 } from 'lucide-react';
 import {
   getGramPanchayat,
   toggleGPStatus,
   deleteGramPanchayat,
   getGPUsers,
-  getGPStats
+  getGPStats,
+  subscribeToGP
 } from '../../services/superAdminService';
 
 const ViewGP = () => {
@@ -42,6 +44,31 @@ const ViewGP = () => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState({});
   const [actionLoading, setActionLoading] = useState(false);
+  const [domainUpdating, setDomainUpdating] = useState(false);
+
+  // Real-time listener for GP updates (especially domain changes)
+  useEffect(() => {
+    if (!id) return;
+
+    // Set up real-time listener
+    const unsubscribe = subscribeToGP(id, (updatedGP) => {
+      if (updatedGP) {
+        setGp(prevGP => {
+          // Check if domain was updated
+          if (prevGP && prevGP.domain !== updatedGP.domain) {
+            setDomainUpdating(false);
+            console.log('✅ Domain updated:', updatedGP.domain);
+          }
+          return updatedGP;
+        });
+      }
+    });
+
+    // Cleanup listener on unmount
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [id]);
 
   useEffect(() => {
     loadGPData();
@@ -256,19 +283,32 @@ const ViewGP = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-start gap-3">
                   <Globe className="w-5 h-5 text-gray-400 mt-0.5" />
-                  <div>
+                  <div className="flex-1">
                     <p className="text-sm text-gray-500">Domain</p>
                     <div className="flex items-center gap-2">
-                      <p className="text-gray-900 font-medium">{gp.domain || 'Not configured'}</p>
-                      {gp.domain && (
-                        <button
-                          onClick={() => window.open(`https://${gp.domain}`, '_blank')}
-                          className="text-indigo-600 hover:text-indigo-800"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </button>
+                      {domainUpdating ? (
+                        <div className="flex items-center gap-2">
+                          <Loader className="w-4 h-4 text-indigo-600 animate-spin" />
+                          <p className="text-gray-600 italic">Deploying...</p>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-gray-900 font-medium">{gp.domain || 'Not configured'}</p>
+                          {gp.domain && (
+                            <button
+                              onClick={() => window.open(`https://${gp.domain}`, '_blank')}
+                              className="text-indigo-600 hover:text-indigo-800"
+                              title="Open site in new tab"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </button>
+                          )}
+                        </>
                       )}
                     </div>
+                    {gp.subdomain && (
+                      <p className="text-xs text-gray-500 mt-1">Subdomain: {gp.subdomain}</p>
+                    )}
                     {gp.domainStatus && (
                       <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block ${
                         gp.domainStatus === 'active' ? 'bg-green-100 text-green-700' :
@@ -277,6 +317,11 @@ const ViewGP = () => {
                       }`}>
                         {gp.domainStatus}
                       </span>
+                    )}
+                    {!gp.domain && !domainUpdating && (
+                      <p className="text-xs text-amber-600 mt-1">
+                        ⏳ Deployment in progress... Domain will appear here automatically.
+                      </p>
                     )}
                   </div>
                 </div>

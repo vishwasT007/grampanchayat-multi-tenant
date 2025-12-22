@@ -195,6 +195,11 @@ export default function AddGP() {
       // Scroll to top to show success message
       window.scrollTo({ top: 0, behavior: 'smooth' });
       
+      // Auto-navigate to ViewGP page after 5 seconds to see domain update
+      setTimeout(() => {
+        navigate(`/superadmin/gram-panchayats/${result.gpId}`);
+      }, 5000);
+      
     } catch (err) {
       console.error('Error creating GP:', err);
       
@@ -314,40 +319,47 @@ export default function AddGP() {
 
             {/* Next Steps */}
             <div className="bg-gray-50 rounded-lg p-6 mb-6">
-              <h3 className="font-semibold text-gray-900 mb-3">Next Steps:</h3>
+              <h3 className="font-semibold text-gray-900 mb-3">🚀 What's Happening Next:</h3>
               <ol className="space-y-2 text-gray-700">
                 <li className="flex items-start gap-2">
                   <span className="font-semibold text-indigo-600">1.</span>
-                  <span>Share the admin credentials with the GP administrator</span>
+                  <span>GitHub Actions is deploying the GP site (takes ~2-3 minutes)</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="font-semibold text-indigo-600">2.</span>
-                  <span>If you added a custom domain, configure it in Firebase Hosting</span>
+                  <span>The actual domain URL will be updated automatically in Firestore</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="font-semibold text-indigo-600">3.</span>
-                  <span>Ask the admin to login and change their password</span>
+                  <span>You'll be redirected to the GP page where you can see the live domain</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="font-semibold text-indigo-600">4.</span>
-                  <span>The admin can start adding content to their GP portal</span>
+                  <span>Share the admin credentials with the GP administrator</span>
                 </li>
               </ol>
+              <div className="mt-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg flex items-start gap-2">
+                <Loader className="w-4 h-4 text-indigo-600 animate-spin mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-indigo-800">
+                  <strong>Auto-redirecting in 5 seconds...</strong> You'll see the deployment progress on the GP details page.
+                </p>
+              </div>
             </div>
 
             {/* Action Buttons */}
             <div className="flex gap-4">
               <button
-                onClick={handleCreateAnother}
-                className="flex-1 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition font-semibold"
+                onClick={() => navigate(`/superadmin/gram-panchayats/${generatedCredentials.gpId}`)}
+                className="flex-1 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition font-semibold flex items-center justify-center gap-2"
               >
-                Add Another GP
+                <Eye className="w-5 h-5" />
+                View GP Details
               </button>
               <button
-                onClick={() => navigate('/superadmin/gram-panchayats')}
+                onClick={handleCreateAnother}
                 className="flex-1 bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 transition font-semibold"
               >
-                View All GPs
+                Add Another GP
               </button>
             </div>
           </div>
