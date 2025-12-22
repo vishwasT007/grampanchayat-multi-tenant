@@ -292,6 +292,8 @@ jobs:
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           FIREBASE_SERVICE_ACCOUNT_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
+          GP_ID: ${{ steps.create_site.outputs.site_id }}
+          SITE_ID: ${{ steps.create_site.outputs.site_id }}
         run: |
           SITE_ID="${{ steps.create_site.outputs.site_id }}"
           
@@ -415,9 +417,6 @@ jobs:
           
           createAdminUser();
           EOFNODE
-        env:
-          GP_ID: ${{ steps.create_site.outputs.site_id }}
-          SITE_ID: ${{ steps.create_site.outputs.site_id }}
 
       - name: Commit firebase.json changes (if any)
         uses: stefanzweifel/git-auto-commit-action@v5
