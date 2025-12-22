@@ -250,12 +250,17 @@ jobs:
           
           echo "Extracted GP ID: $GP_ID from site: $SITE_ID"
           
-          # Ensure /tmp/firebase_sa.json exists; if base64 secret provided, it was decoded earlier
+          # Ensure /tmp/firebase_sa.json exists and is valid JSON
           if [ ! -s "/tmp/firebase_sa.json" ]; then
             if [ -n "$FIREBASE_SERVICE_ACCOUNT_BASE64" ]; then
+              echo "Using FIREBASE_SERVICE_ACCOUNT_BASE64..."
               echo "$FIREBASE_SERVICE_ACCOUNT_BASE64" | base64 -d > /tmp/firebase_sa.json
             elif [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
-              echo "$FIREBASE_SERVICE_ACCOUNT" > /tmp/firebase_sa.json
+              echo "Using FIREBASE_SERVICE_ACCOUNT..."
+              # Write JSON properly, preserving formatting
+              cat > /tmp/firebase_sa.json << 'EOFSA'
+          ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          EOFSA
             else
               echo "⚠️  WARNING: No service account configured. Firestore update will be skipped."
               echo "The GP domain in SuperAdmin UI may not reflect the actual deployed site."
@@ -263,6 +268,18 @@ jobs:
               exit 0
             fi
           fi
+          
+          # Validate JSON before using
+          if ! node -e "JSON.parse(require('fs').readFileSync('/tmp/firebase_sa.json', 'utf8'))" 2>/dev/null; then
+            echo "❌ ERROR: Service account JSON is invalid!"
+            echo "Please check your FIREBASE_SERVICE_ACCOUNT secret in GitHub."
+            echo "It should be valid JSON starting with { and ending with }"
+            cat /tmp/firebase_sa.json | head -c 200
+            echo "..."
+            exit 1
+          fi
+          
+          echo "✅ Service account JSON validated"
           
           # Update BOTH domain and subdomain in Firestore
           # Extract just the subdomain part (without .web.app)
