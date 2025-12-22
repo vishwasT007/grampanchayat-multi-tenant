@@ -51,8 +51,10 @@ export const ALL_TENANTS = [
  * Normalize Firebase Hosting site subdomain to a tenant ID.
  *
  * Supports:
- * - <gpId>-gpmulti
- * - <gpId>-gpmulti-<randomSuffix>
+ * - gp-<gpId> (new format)
+ * - gp-<gpId>-<randomSuffix> (new format with Firebase suffix)
+ * - <gpId>-gpmulti (old format)
+ * - <gpId>-gpmulti-<randomSuffix> (old format with suffix)
  *
  * NOTE: We preserve hyphens in gpId. Hyphen removal previously caused tenant mismatches
  * (e.g. `pindkeparlodha-gpmulti-y757r4` becoming `pindkeparlodhay757r4`).
@@ -61,6 +63,28 @@ export const normalizeFirebaseHostingSubdomainToTenantId = (subdomain) => {
   if (!subdomain || typeof subdomain !== 'string') return '';
   let s = subdomain.toLowerCase();
 
+  // NEW FORMAT: gp-<gpId> or gp-<gpId>-<randomSuffix>
+  // Examples:
+  // - gp-pindkeparlodha -> pindkeparlodha
+  // - gp-pindkeparlodha-wsye6o -> pindkeparlodha
+  // - gp-test-village -> test-village
+  // - gp-test-village-abc123 -> test-village
+  if (s.startsWith('gp-')) {
+    // Remove 'gp-' prefix
+    s = s.substring(3);
+    
+    // Check if there's a Firebase random suffix (6 alphanumeric chars at the end)
+    // Pattern: -[a-z0-9]{6}$ at the end
+    const suffixMatch = s.match(/^(.+)-([a-z0-9]{6})$/);
+    if (suffixMatch) {
+      // Extract the GP ID part (everything before the last hyphen and 6-char suffix)
+      s = suffixMatch[1];
+    }
+    
+    return s;
+  }
+
+  // OLD FORMAT: <gpId>-gpmulti or <gpId>-gpmulti-<randomSuffix>
   // Strip the `-gpmulti` marker and any suffix after it.
   // Examples:
   // - pindkepar-lodha-gpmulti -> pindkepar-lodha
