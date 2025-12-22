@@ -28,7 +28,11 @@ const db = admin.firestore();
 async function fixPindkepar() {
   const gpId = 'pindkeparlodha';
   
-  // Get the actual deployed site ID from user input
+  // The ACTUAL deployed site from GitHub Actions logs
+  const actualSiteId = 'gp-pindkeparlodha-wsye6o'; // From your logs
+  const newSubdomain = actualSiteId;
+  const newDomain = `${actualSiteId}.web.app`;
+  
   console.log('\n🔍 Current GP data in Firestore:');
   const gpDoc = await db.doc(`globalConfig/metadata/gramPanchayats/${gpId}`).get();
   
@@ -42,10 +46,10 @@ async function fixPindkepar() {
   console.log('  - Current domain:', currentData.domain);
   console.log('  - Current domainStatus:', currentData.domainStatus);
   
-  console.log('\n📋 What is the ACTUAL deployed site ID?');
-  console.log('   (Check GitHub Actions logs or Firebase Console)');
-  console.log('   Example: gp-pindkeparlodha-hrxy7z');
-  console.log('');
+  console.log('\n� Will update Firestore to:');
+  console.log('  - subdomain:', newSubdomain);
+  console.log('  - domain:', newDomain);
+  console.log('  - domainStatus: active');
   
   // Read from stdin
   const readline = require('readline').createInterface({
@@ -53,45 +57,29 @@ async function fixPindkepar() {
     output: process.stdout
   });
   
-  readline.question('Enter actual site ID: ', async (actualSiteId) => {
-    actualSiteId = actualSiteId.trim();
-    
-    if (!actualSiteId) {
-      console.error('❌ No site ID provided');
-      process.exit(1);
+  readline.question('\nProceed with update? (yes/no): ', async (answer) => {
+    if (answer.toLowerCase() !== 'yes') {
+      console.log('❌ Cancelled');
+      process.exit(0);
     }
     
-    const newSubdomain = actualSiteId;
-    const newDomain = `${actualSiteId}.web.app`;
-    
-    console.log('\n📝 Will update Firestore to:');
-    console.log('  - subdomain:', newSubdomain);
-    console.log('  - domain:', newDomain);
-    console.log('  - domainStatus: active');
-    
-    readline.question('\nProceed? (yes/no): ', async (answer) => {
-      if (answer.toLowerCase() !== 'yes') {
-        console.log('❌ Cancelled');
-        process.exit(0);
-      }
+    try {
+      await db.doc(`globalConfig/metadata/gramPanchayats/${gpId}`).set({
+        subdomain: newSubdomain,
+        domain: newDomain,
+        domainStatus: 'active'
+      }, { merge: true });
       
-      try {
-        await db.doc(`globalConfig/metadata/gramPanchayats/${gpId}`).set({
-          subdomain: newSubdomain,
-          domain: newDomain,
-          domainStatus: 'active'
-        }, { merge: true });
-        
-        console.log('\n✅ Firestore updated successfully!');
-        console.log('🌐 SuperAdmin UI will now show:', newDomain);
-        console.log('🔗 Test at: https://' + newDomain);
-        
-        process.exit(0);
-      } catch (error) {
-        console.error('❌ Update failed:', error.message);
-        process.exit(1);
-      }
-    });
+      console.log('\n✅ Firestore updated successfully!');
+      console.log('🌐 SuperAdmin UI will now show:', newDomain);
+      console.log('🔗 Test at: https://' + newDomain);
+      console.log('\n💡 Refresh the SuperAdmin page to see the change immediately!');
+      
+      process.exit(0);
+    } catch (error) {
+      console.error('❌ Update failed:', error.message);
+      process.exit(1);
+    }
   });
 }
 
