@@ -288,6 +288,137 @@ jobs:
           
           node -e "const fs=require('fs');const admin=require('firebase-admin');const raw=fs.readFileSync('/tmp/firebase_sa.json','utf8');let sa;try{sa=JSON.parse(raw);}catch(e){console.error('Invalid service account JSON:',e.message);process.exit(1);}admin.initializeApp({credential:admin.credential.cert(sa)});const db=admin.firestore();const gpId='${GP_ID}';const subdomain='${SUBDOMAIN}';const domain='${DOMAIN}';console.log('Updating GP',gpId);console.log('  - subdomain:',subdomain);console.log('  - domain:',domain);db.doc('globalConfig/metadata/gramPanchayats/'+gpId).set({subdomain:subdomain,domain:domain},{merge:true}).then(()=>{console.log('✅ Firestore updated successfully');process.exit(0);}).catch(e=>{console.error('❌ Firestore update failed:',e.message);process.exit(1)});"
 
+      - name: Create Firebase Auth user for admin
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_SERVICE_ACCOUNT_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
+        run: |
+          SITE_ID="${{ steps.create_site.outputs.site_id }}"
+          
+          # Extract GP ID from site ID
+          if [[ "$SITE_ID" == gp-* ]]; then
+            GP_ID="${SITE_ID#gp-}"
+            GP_ID="${GP_ID%%-*}"
+          else
+            GP_ID="${SITE_ID%-gpmulti*}"
+          fi
+          
+          echo "Creating Firebase Auth user for GP: $GP_ID"
+          
+          # Service account should already be at /tmp/firebase_sa.json from previous step
+          # But check and recreate if needed
+          if [ ! -s "/tmp/firebase_sa.json" ]; then
+            if [ -n "$FIREBASE_SERVICE_ACCOUNT_BASE64" ]; then
+              echo "$FIREBASE_SERVICE_ACCOUNT_BASE64" | base64 -d > /tmp/firebase_sa.json
+            elif [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
+              cat > /tmp/firebase_sa.json << 'EOFSA'
+          ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          EOFSA
+            else
+              echo "⚠️  WARNING: No service account configured. Admin user creation skipped."
+              exit 0
+            fi
+          fi
+          
+          # Create admin user script
+          node << 'EOFNODE'
+          const fs = require('fs');
+          const admin = require('firebase-admin');
+          
+          async function createAdminUser() {
+            try {
+              const serviceAccount = JSON.parse(fs.readFileSync('/tmp/firebase_sa.json', 'utf8'));
+              admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+              
+              const db = admin.firestore();
+              const auth = admin.auth();
+              const gpId = process.env.GP_ID;
+              
+              console.log(`\n🔧 Creating admin user for GP: ${gpId}\n`);
+              
+              // Get GP data to retrieve admin credentials
+              const gpDoc = await db.doc(`globalConfig/metadata/gramPanchayats/${gpId}`).get();
+              
+              if (!gpDoc.exists) {
+                console.log('⚠️  GP document not found. Skipping admin user creation.');
+                process.exit(0);
+              }
+              
+              const gpData = gpDoc.data();
+              const adminEmail = gpData.adminEmail;
+              const adminPassword = gpData.adminPassword;
+              const adminName = gpData.adminName || 'Admin';
+              
+              if (!adminEmail || !adminPassword) {
+                console.log('⚠️  Admin credentials not found in GP document. Skipping.');
+                process.exit(0);
+              }
+              
+              console.log(`📧 Email: ${adminEmail}`);
+              
+              // Check if user already exists
+              let userRecord;
+              try {
+                userRecord = await auth.getUserByEmail(adminEmail);
+                console.log(`✅ User already exists with UID: ${userRecord.uid}`);
+              } catch (error) {
+                if (error.code === 'auth/user-not-found') {
+                  // Create new user
+                  userRecord = await auth.createUser({
+                    email: adminEmail,
+                    password: adminPassword,
+                    emailVerified: true,
+                    displayName: adminName
+                  });
+                  console.log(`✅ Firebase Auth user created! UID: ${userRecord.uid}`);
+                } else {
+                  throw error;
+                }
+              }
+              
+              // Set custom claims
+              await auth.setCustomUserClaims(userRecord.uid, {
+                role: 'admin',
+                tenantId: gpId
+              });
+              console.log('✅ Custom claims set (role: admin)');
+              
+              // Create/update user document in Firestore
+              await db.doc(`gramPanchayats/${gpId}/users/${userRecord.uid}`).set({
+                email: adminEmail,
+                name: adminName,
+                role: 'admin',
+                tenantId: gpId,
+                uid: userRecord.uid,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                active: true,
+                createdBy: 'automation',
+                passwordLastChanged: admin.firestore.FieldValue.serverTimestamp()
+              }, { merge: true });
+              console.log('✅ User document updated in Firestore\n');
+              
+              console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+              console.log('🎉 ADMIN USER READY!');
+              console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+              console.log(`📧 Email: ${adminEmail}`);
+              console.log(`🔑 Password: ${adminPassword}`);
+              console.log(`🌐 Login URL: https://${process.env.SITE_ID}.web.app/admin/login\n`);
+              
+              process.exit(0);
+            } catch (error) {
+              console.error('❌ Error creating admin user:', error.message);
+              console.log('⚠️  Admin user creation failed, but deployment succeeded.');
+              console.log('   Admin can be created manually later.');
+              process.exit(0); // Don't fail the whole workflow
+            }
+          }
+          
+          createAdminUser();
+          EOFNODE
+        env:
+          GP_ID: ${{ steps.create_site.outputs.site_id }}
+          SITE_ID: ${{ steps.create_site.outputs.site_id }}
+
       - name: Commit firebase.json changes (if any)
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
