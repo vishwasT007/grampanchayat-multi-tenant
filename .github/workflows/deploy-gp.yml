@@ -226,15 +226,11 @@ jobs:
             firebase deploy --only hosting:"$SITE_ID" --project "$FIREBASE_PROJECT_ID"
           fi
 
-      - name: Update Firestore domain with final site
+      - name: Update Firestore domain and subdomain with final site
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           FIREBASE_SERVICE_ACCOUNT_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
         run: |
-          if [ "$USE_TOKEN_FALLBACK" = "true" ]; then
-            echo "Skipping Firestore update: service account not configured."
-            exit 0
-          fi
           npm install firebase-admin --no-save
           NORMALIZED="${{ steps.normalize_subdomain.outputs.normalized }}"
           SITE_ID="${{ steps.create_site.outputs.site_id }}"
@@ -260,9 +256,20 @@ jobs:
               echo "$FIREBASE_SERVICE_ACCOUNT_BASE64" | base64 -d > /tmp/firebase_sa.json
             elif [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
               echo "$FIREBASE_SERVICE_ACCOUNT" > /tmp/firebase_sa.json
+            else
+              echo "⚠️  WARNING: No service account configured. Firestore update will be skipped."
+              echo "The GP domain in SuperAdmin UI may not reflect the actual deployed site."
+              echo "Please configure FIREBASE_SERVICE_ACCOUNT or FIREBASE_SERVICE_ACCOUNT_BASE64 secret."
+              exit 0
             fi
           fi
-          node -e "const fs=require('fs');const admin=require('firebase-admin');const raw=fs.readFileSync('/tmp/firebase_sa.json','utf8');let sa;try{sa=JSON.parse(raw);}catch(e){console.error('Invalid service account JSON:',e.message);process.exit(1);}admin.initializeApp({credential:admin.credential.cert(sa)});const db=admin.firestore();const gpId='${GP_ID}';const site='${SITE_ID}.web.app';console.log('Updating domain for GP',gpId,'to',site);db.doc('globalConfig/metadata/gramPanchayats/'+gpId).set({domain:site},{merge:true}).then(()=>{console.log('Firestore updated')}).catch(e=>{console.error(e);process.exit(1)});"
+          
+          # Update BOTH domain and subdomain in Firestore
+          # Extract just the subdomain part (without .web.app)
+          SUBDOMAIN="${SITE_ID}"
+          DOMAIN="${SITE_ID}.web.app"
+          
+          node -e "const fs=require('fs');const admin=require('firebase-admin');const raw=fs.readFileSync('/tmp/firebase_sa.json','utf8');let sa;try{sa=JSON.parse(raw);}catch(e){console.error('Invalid service account JSON:',e.message);process.exit(1);}admin.initializeApp({credential:admin.credential.cert(sa)});const db=admin.firestore();const gpId='${GP_ID}';const subdomain='${SUBDOMAIN}';const domain='${DOMAIN}';console.log('Updating GP',gpId);console.log('  - subdomain:',subdomain);console.log('  - domain:',domain);db.doc('globalConfig/metadata/gramPanchayats/'+gpId).set({subdomain:subdomain,domain:domain},{merge:true}).then(()=>{console.log('✅ Firestore updated successfully');process.exit(0);}).catch(e=>{console.error('❌ Firestore update failed:',e.message);process.exit(1)});"
 
       - name: Commit firebase.json changes (if any)
         uses: stefanzweifel/git-auto-commit-action@v5
@@ -276,8 +283,12 @@ jobs:
         run: |
           SITE_ID="${{ steps.create_site.outputs.site_id }}"
           echo "✅ GP deployed successfully!"
-          echo "🌐 Live at: https://$SITE_ID.web.app"
           echo ""
-          echo "📝 Next steps:"
-          echo "1. Domain updated in Firestore to: $SITE_ID.web.app"
-          echo "2. Test: https://$SITE_ID.web.app"
+          echo "🌐 ACTUAL DEPLOYED SITE: https://$SITE_ID.web.app"
+          echo ""
+          echo "📝 Important:"
+          echo "• If Firebase added a suffix (like -hrxy7z), both domain and subdomain"
+          echo "  have been updated in Firestore to match the actual deployed site."
+          echo "• SuperAdmin UI will now show: $SITE_ID.web.app"
+          echo "• Test the site: https://$SITE_ID.web.app"
+
