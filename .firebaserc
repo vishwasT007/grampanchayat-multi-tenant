@@ -22,6 +22,9 @@
         ],
         "pindkeparlodha-clean": [
           "gp-pindkeparlodha"
+        ],
+        "gp-pindkeparlodha-gpmulti": [
+          "gp-pindkeparlodha-gpmulti"
         ]
       }
     }
