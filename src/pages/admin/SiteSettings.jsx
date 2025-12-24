@@ -6,6 +6,22 @@ import { getSettings, updateSettings } from '../../services/settingsService';
 import { uploadImage, deleteImage } from '../../services/storageService';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
 
+// Helper function to update favicon
+const updateFavicon = (logoURL) => {
+  // Remove existing favicon links
+  const existingLinks = document.querySelectorAll("link[rel*='icon']");
+  existingLinks.forEach(link => link.remove());
+  
+  // Add new favicon link
+  const link = document.createElement('link');
+  link.rel = 'icon';
+  link.type = 'image/png';
+  link.href = logoURL;
+  document.head.appendChild(link);
+  
+  console.log('Favicon updated to:', logoURL);
+};
+
 function SiteSettings() {
   const { refresh } = useSiteSettings();
   const [formData, setFormData] = useState({
@@ -19,7 +35,8 @@ function SiteSettings() {
     twitter: '',
     instagram: '',
     officePhoto: '',
-    googleMapsLink: ''
+    googleMapsLink: '',
+    logo: ''
   });
 
   const [errors, setErrors] = useState({});
@@ -28,6 +45,8 @@ function SiteSettings() {
   const [saving, setSaving] = useState(false);
   const [officePhotoFile, setOfficePhotoFile] = useState(null);
   const [officePhotoPreview, setOfficePhotoPreview] = useState('');
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState('');
 
   // Load settings from Firebase on mount
   useEffect(() => {
@@ -48,9 +67,11 @@ function SiteSettings() {
             twitter: settings.socialMedia?.twitter || '',
             instagram: settings.socialMedia?.instagram || '',
             officePhoto: settings.officePhoto || '',
-            googleMapsLink: settings.googleMapsLink || ''
+            googleMapsLink: settings.googleMapsLink || '',
+            logo: settings.logo || ''
           });
           setOfficePhotoPreview(settings.officePhoto || '');
+          setLogoPreview(settings.logo || '');
         } else {
           // Initialize with mock data
           setFormData({
@@ -117,10 +138,39 @@ function SiteSettings() {
     }
   };
 
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+      }
+      // Validate file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Logo size should be less than 2MB');
+        return;
+      }
+      setLogoFile(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleRemovePhoto = () => {
     setOfficePhotoFile(null);
     setOfficePhotoPreview('');
     setFormData(prev => ({ ...prev, officePhoto: '' }));
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoFile(null);
+    setLogoPreview('');
+    setFormData(prev => ({ ...prev, logo: '' }));
   };
 
   const validateForm = () => {
@@ -164,6 +214,21 @@ function SiteSettings() {
 
     try {
       let officePhotoURL = formData.officePhoto;
+      let logoURL = formData.logo;
+
+      // Upload new logo if selected
+      if (logoFile) {
+        // Delete old logo if exists
+        if (formData.logo) {
+          try {
+            await deleteImage(formData.logo);
+          } catch (error) {
+            console.warn('Failed to delete old logo:', error);
+          }
+        }
+        // Upload new logo
+        logoURL = await uploadImage(logoFile, 'site/logos');
+      }
 
       // Upload new photo if selected
       if (officePhotoFile) {
@@ -182,6 +247,7 @@ function SiteSettings() {
       const settingsData = {
         panchayatName: formData.panchayatName,
         tagline: formData.tagline,
+        logo: logoURL,
         contact: {
           phone: formData.phone,
           email: formData.email,
@@ -199,6 +265,11 @@ function SiteSettings() {
 
       // Save to Firebase
       await updateSettings(settingsData);
+      
+      // Update favicon if logo was uploaded
+      if (logoURL) {
+        updateFavicon(logoURL);
+      }
       
       // Refresh context to update the site immediately
       await refresh();
@@ -283,6 +354,63 @@ function SiteSettings() {
             {errors.tagline && (
               <p className="text-red-500 text-sm mt-1">{errors.tagline}</p>
             )}
+          </div>
+        </div>
+
+        {/* Logo & Branding */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <ImageIcon className="text-primary-600" size={24} />
+            <h2 className="text-xl font-semibold text-gray-900">
+              Logo & Branding
+            </h2>
+          </div>
+
+          <div className="space-y-6">
+            {/* Logo Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Gram Panchayat Logo
+              </label>
+              <p className="text-sm text-gray-500 mb-3">
+                Upload your Gram Panchayat logo. This will appear in the header and as the favicon. Recommended size: 200x200px, PNG or JPG format.
+              </p>
+              
+              {logoPreview ? (
+                <div className="relative inline-block">
+                  <img
+                    src={logoPreview}
+                    alt="Logo Preview"
+                    className="w-32 h-32 object-contain rounded-lg border-2 border-gray-300 bg-white p-2"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveLogo}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center w-full">
+                  <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <ImageIcon className="w-10 h-10 mb-3 text-gray-400" />
+                      <p className="mb-2 text-sm text-gray-500">
+                        <span className="font-semibold">Click to upload</span> or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-500">PNG, JPG (MAX. 2MB)</p>
+                    </div>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleLogoChange}
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

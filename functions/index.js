@@ -160,6 +160,42 @@ exports.onGPCreated = onDocumentCreated(
           deploymentTriggeredAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
+        // STEP 3: Initialize settings document for new GP
+        logger.info(`📝 Creating initial settings document for: ${gpId}`);
+        try {
+          const settingsPath = `gramPanchayats/${gpId}/settings/siteConfig`;
+          const gpName = gpData.name || `GP ${gpId.charAt(0).toUpperCase() + gpId.slice(1)}`;
+          const gpNameHi = gpData.nameHi || `ग्राम पंचायत ${gpId}`;
+          
+          await admin.firestore().doc(settingsPath).set({
+            panchayatName: gpName,
+            title: gpNameHi,
+            tagline: "",
+            description: "",
+            address: gpData.address || "",
+            contact: {
+              phone: gpData.phone || "",
+              email: gpData.adminEmail || "",
+              fax: "",
+            },
+            officeTimings: "",
+            socialMedia: {
+              facebook: "",
+              twitter: "",
+              instagram: "",
+            },
+            logo: "", // Logo upload field (empty initially, admin will upload)
+            officePhoto: "", // Office photo field (empty initially)
+            googleMapsLink: "", // Google Maps link (empty initially)
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdBy: "auto-deployment",
+          });
+          logger.info(`✅ Settings document created: ${settingsPath}`);
+        } catch (settingsError) {
+          logger.warn("⚠️ Settings document creation error (continuing anyway):", settingsError);
+          // Don't fail the whole process if settings creation fails
+        }
+
         return {success: true, gpId, subdomain, deploymentTriggered: true};
       } catch (error) {
         logger.error(`❌ Auto-deployment failed for: ${gpId}`, error);

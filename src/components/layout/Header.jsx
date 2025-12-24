@@ -93,19 +93,31 @@ const Header = () => {
       <div className={`bg-white border-b border-gray-100 transition-all duration-300 ${scrolled ? 'py-2' : 'py-3'}`}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center lg:justify-center lg:relative">
-            {/* Panchayat Name - Text Only */}
-            <Link to="/" className="group text-center">
-              <h1 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-gray-900 bg-clip-text text-transparent leading-tight group-hover:from-orange-600 group-hover:via-orange-700 group-hover:to-orange-600 transition-all duration-300">
-                {getContent(siteSettings.panchayatName)}
-              </h1>
-              <p className="text-xs sm:text-sm text-gray-600 leading-tight font-medium hidden sm:block mt-0.5">
-                {getContent(siteSettings.tagline)}
-              </p>
-              {/* India Flag Stripe */}
-              <div className="w-20 h-0.5 mx-auto mt-1 flex rounded-full overflow-hidden">
-                <div className="flex-1 bg-orange-600"></div>
-                <div className="flex-1 bg-white"></div>
-                <div className="flex-1 bg-green-600"></div>
+            {/* Logo and Panchayat Name */}
+            <Link to="/" className="group flex items-center gap-3">
+              {/* Logo */}
+              {siteSettings.logo && (
+                <img 
+                  src={siteSettings.logo} 
+                  alt="GP Logo" 
+                  className="h-12 w-12 object-contain"
+                />
+              )}
+              
+              {/* Panchayat Name */}
+              <div className="text-center">
+                <h1 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-gray-900 bg-clip-text text-transparent leading-tight group-hover:from-orange-600 group-hover:via-orange-700 group-hover:to-orange-600 transition-all duration-300">
+                  {getContent(siteSettings.panchayatName)}
+                </h1>
+                <p className="text-xs sm:text-sm text-gray-600 leading-tight font-medium hidden sm:block mt-0.5">
+                  {getContent(siteSettings.tagline)}
+                </p>
+                {/* India Flag Stripe */}
+                <div className="w-20 h-0.5 mx-auto mt-1 flex rounded-full overflow-hidden">
+                  <div className="flex-1 bg-orange-600"></div>
+                  <div className="flex-1 bg-white"></div>
+                  <div className="flex-1 bg-green-600"></div>
+                </div>
               </div>
             </Link>
 

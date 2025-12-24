@@ -33,3 +33,4 @@ firebase-token.txt
 *.sln
 *.sw?
 functions/.env*
+serviceAccountKey.json

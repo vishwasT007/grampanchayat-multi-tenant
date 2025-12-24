@@ -199,18 +199,22 @@ export const resetTenant = () => {
 
 /**
  * Get tenant information object
+ * For multi-tenant system, returns a dynamic object for any tenant
  */
 export const getTenantInfo = () => {
   const tenantId = getTenant();
   const tenant = ALL_TENANTS.find(t => t.id === tenantId);
   
   if (!tenant) {
-    console.warn(`⚠️ Tenant "${tenantId}" not found in ALL_TENANTS`);
+    // For dynamic multi-tenant system, return a default object
+    // The actual GP data will be loaded from Firestore
+    console.log(`ℹ️ Tenant "${tenantId}" using dynamic configuration (will load from Firestore)`);
     return { 
       id: tenantId, 
-      name: `GP ${tenantId}`,
+      name: `GP ${tenantId.charAt(0).toUpperCase() + tenantId.slice(1)}`,
       nameHi: `ग्राम पंचायत ${tenantId}`,
-      active: false 
+      domain: `gp-${tenantId}.web.app`,
+      active: true  // Assume active, will be validated from Firestore
     };
   }
   

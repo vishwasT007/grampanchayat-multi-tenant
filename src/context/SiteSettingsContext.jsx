@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { mockSiteSettings } from '../data/mockData';
 import { getSettings, initializeSettings } from '../services/settingsService';
+import { updateFavicon, updateDocumentTitle } from '../utils/siteUtils';
 
 const SiteSettingsContext = createContext();
 
@@ -17,6 +18,13 @@ export const SiteSettingsProvider = ({ children }) => {
         
         if (settings) {
           setSiteSettings(settings);
+          // Update favicon and title if logo exists
+          if (settings.logo) {
+            updateFavicon(settings.logo);
+          }
+          if (settings.panchayatName) {
+            updateDocumentTitle(settings.panchayatName);
+          }
           console.log('Site settings loaded from Firebase:', settings);
         } else {
           // First time - initialize with mock settings
@@ -39,7 +47,16 @@ export const SiteSettingsProvider = ({ children }) => {
   return (
     <SiteSettingsContext.Provider value={{ settings: siteSettings, loading, refresh: async () => {
       const settings = await getSettings();
-      if (settings) setSiteSettings(settings);
+      if (settings) {
+        setSiteSettings(settings);
+        // Update favicon and title on refresh
+        if (settings.logo) {
+          updateFavicon(settings.logo);
+        }
+        if (settings.panchayatName) {
+          updateDocumentTitle(settings.panchayatName);
+        }
+      }
     }}}>
       {children}
     </SiteSettingsContext.Provider>
