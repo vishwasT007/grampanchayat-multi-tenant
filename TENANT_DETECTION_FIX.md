@@ -1,170 +1,337 @@
-# 🏛️ Tenant Detection Fix - Complete Guide
+# ✅ TENANT DETECTION FIX - Custom Domains Now Load Correct Data# 🏛️ Tenant Detection Fix - Complete Guide
 
-**Date:** December 22, 2024  
-**Status:** ✅ FIXED & DEPLOYED
 
----
 
-## 🐛 The Problem
+**Date:** December 26, 2025  **Date:** December 22, 2024  
 
-### Console Errors Reported:
-```
+**Critical Fix:** Tenant detection for custom domains**Status:** ✅ FIXED & DEPLOYED
+
+
+
+------
+
+
+
+## ❌ **The Problem You Reported**## 🐛 The Problem
+
+
+
+```### Console Errors Reported:
+
+Opening: https://www.grampanchayatnawargaon.in/```
+
 ⚠️ Tenant "gp-pindkeparlodha-wsye6o" not found in ALL_TENANTS
-❌ Error updating settings: FirebaseError: Missing or insufficient permissions.
-❌ Error initializing settings: FirebaseError: Missing or insufficient permissions.
-❌ Error loading site settings: FirebaseError: Missing or insufficient permissions.
-❌ Sign in error: Error: User data not found
+
+Console showed:❌ Error updating settings: FirebaseError: Missing or insufficient permissions.
+
+❌ 🏛️ Using default tenant: pindkepar  ← WRONG!❌ Error initializing settings: FirebaseError: Missing or insufficient permissions.
+
+❌ 🏛️ Current Tenant: pindkepar         ← WRONG!❌ Error loading site settings: FirebaseError: Missing or insufficient permissions.
+
+❌ Site settings loaded: {pindkepar data}  ← WRONG!❌ Sign in error: Error: User data not found
+
 ```
 
-### Root Cause:
-The app was using the **entire subdomain** as the tenant ID instead of extracting the actual GP ID.
+Expected:
+
+✅ 🏛️ Current Tenant: nawargaon  ← Should be this!### Root Cause:
+
+✅ Site settings loaded: {nawargaon data from gp-nawargaon.web.app}The app was using the **entire subdomain** as the tenant ID instead of extracting the actual GP ID.
+
+```
 
 **What was happening:**
-```
+
+**Same issue on ALL 4 custom domains** - all showing "pindkepar" data!```
+
 Subdomain: gp-pindkeparlodha-wsye6o
-App extracted tenant as: 'gp-pindkeparlodha-wsye6o' ❌
 
-Firestore path being accessed:
+---App extracted tenant as: 'gp-pindkeparlodha-wsye6o' ❌
+
+
+
+## 🔍 **Root Cause**Firestore path being accessed:
+
 ❌ gramPanchayats/gp-pindkeparlodha-wsye6o/users/{uid}
-❌ gramPanchayats/gp-pindkeparlodha-wsye6o/settings
 
-Actual data location in Firestore:
+### Missing Domain Mappings:❌ gramPanchayats/gp-pindkeparlodha-wsye6o/settings
+
+```javascript
+
+// src/utils/tenant.js - BEFORE FIXActual data location in Firestore:
+
 ✅ gramPanchayats/pindkeparlodha/users/{uid}
-✅ gramPanchayats/pindkeparlodha/settings
-```
 
-**Why this happened:**
+const DOMAIN_MAP = {✅ gramPanchayats/pindkeparlodha/settings
+
+  'grampanchayatpindkepaarlodha.in': 'pindkepar',```
+
+  // ❌ OTHER 3 DOMAINS WERE MISSING!
+
+};**Why this happened:**
+
 - The `normalizeFirebaseHostingSubdomainToTenantId()` function only handled the old `-gpmulti` format
-- The new `gp-<id>-<suffix>` format was not being parsed correctly
-- Firebase adds a random 6-character suffix to prevent naming conflicts
 
----
+Result:- The new `gp-<id>-<suffix>` format was not being parsed correctly
+
+- Custom domains not in map → Fall back to default- Firebase adds a random 6-character suffix to prevent naming conflicts
+
+- Default tenant = "pindkepar"
+
+- ALL domains showed pindkepar data---
+
+```
 
 ## ✅ The Solution
 
+---
+
 ### 1. Updated Tenant Detection Logic
+
+## ✅ **The Fix Applied**
 
 **File:** `src/utils/tenant.js`
 
-**Updated function:** `normalizeFirebaseHostingSubdomainToTenantId()`
+### Updated src/utils/tenant.js:
 
-**New logic:**
-```javascript
-// NEW FORMAT: gp-<gpId> or gp-<gpId>-<randomSuffix>
-if (s.startsWith('gp-')) {
-  // Remove 'gp-' prefix
-  s = s.substring(3);
-  
-  // Check if there's a Firebase random suffix (6 alphanumeric chars at the end)
-  const suffixMatch = s.match(/^(.+)-([a-z0-9]{6})$/);
-  if (suffixMatch) {
-    // Extract the GP ID part
-    s = suffixMatch[1];
-  }
-  
-  return s;
+```javascript**Updated function:** `normalizeFirebaseHostingSubdomainToTenantId()`
+
+const DOMAIN_MAP = {
+
+  // ✅ ALL 4 CUSTOM DOMAINS NOW MAPPED:**New logic:**
+
+  ```javascript
+
+  'grampanchayatpindkeparlodha.in': 'pindkeparlodha',// NEW FORMAT: gp-<gpId> or gp-<gpId>-<randomSuffix>
+
+  'www.grampanchayatpindkeparlodha.in': 'pindkeparlodha',if (s.startsWith('gp-')) {
+
+    // Remove 'gp-' prefix
+
+  'grampanchayatdongartal.in': 'dongartal',  s = s.substring(3);
+
+  'www.grampanchayatdongartal.in': 'dongartal',  
+
+    // Check if there's a Firebase random suffix (6 alphanumeric chars at the end)
+
+  'grampanchayatkatta.in': 'katta',  const suffixMatch = s.match(/^(.+)-([a-z0-9]{6})$/);
+
+  'www.grampanchayatkatta.in': 'katta',  if (suffixMatch) {
+
+      // Extract the GP ID part
+
+  'grampanchayatnawargaon.in': 'nawargaon',    s = suffixMatch[1];
+
+  'www.grampanchayatnawargaon.in': 'nawargaon',  }
+
+};  
+
+```  return s;
+
 }
+
+### Redeployed All 4 GPs:```
+
 ```
 
-**Supported formats:**
+✅ Nawargaon deployed**Supported formats:**
 
-| Subdomain | Extracted Tenant ID |
-|-----------|---------------------|
-| `gp-pindkeparlodha` | `pindkeparlodha` |
+✅ Dongartal deployed  
+
+✅ Katta deployed| Subdomain | Extracted Tenant ID |
+
+✅ Pindkepar deployed|-----------|---------------------|
+
+```| `gp-pindkeparlodha` | `pindkeparlodha` |
+
 | `gp-pindkeparlodha-wsye6o` | `pindkeparlodha` ✅ |
-| `gp-test-village` | `test-village` |
+
+---| `gp-test-village` | `test-village` |
+
 | `gp-test-village-abc123` | `test-village` |
-| `pindkepar-gpmulti` (old) | `pindkepar` |
+
+## ✅ **Expected Console Output NOW**| `pindkepar-gpmulti` (old) | `pindkepar` |
+
 | `pindkepar-gpmulti-y757r4` (old) | `pindkepar` |
 
----
+### For: www.grampanchayatnawargaon.in
 
-## 🚀 Deployment Steps Taken
+```---
 
-### 1. Code Changes
-```bash
-✅ Updated src/utils/tenant.js
-✅ Added support for gp-<id>-<suffix> format
+✅ 🏛️ Current Tenant: nawargaon
+
+✅ Site settings loaded from Firebase: ## 🚀 Deployment Steps Taken
+
+   {
+
+     panchayatName: "Gram Panchayat Nawargaon",### 1. Code Changes
+
+     ... (data YOU uploaded at gp-nawargaon.web.app/admin)```bash
+
+   }✅ Updated src/utils/tenant.js
+
+```✅ Added support for gp-<id>-<suffix> format
+
 ✅ Regex pattern to detect Firebase 6-char suffix
+
+### For: www.grampanchayatdongartal.in```
+
 ```
 
-### 2. Firebase Configuration
-```bash
-✅ Added firebase.json hosting target for gp-pindkeparlodha-wsye6o
+✅ 🏛️ Current Tenant: dongartal### 2. Firebase Configuration
+
+✅ Site settings loaded: {Dongartal data}```bash
+
+```✅ Added firebase.json hosting target for gp-pindkeparlodha-wsye6o
+
 ✅ Added .firebaserc mapping for gp-pindkeparlodha-wsye6o
+
+### For: www.grampanchayatkatta.in```
+
 ```
 
-### 3. Build & Deploy
-```bash
-npm run build
+✅ 🏛️ Current Tenant: katta### 3. Build & Deploy
+
+✅ Site settings loaded: {Katta data}```bash
+
+```npm run build
+
 ✅ Built successfully
 
-firebase deploy --only hosting:gp-pindkeparlodha-wsye6o
-✅ Deployed to: https://gp-pindkeparlodha-wsye6o.web.app
+### For: www.grampanchayatpindkeparlodha.in
+
+```firebase deploy --only hosting:gp-pindkeparlodha-wsye6o
+
+✅ 🏛️ Current Tenant: pindkeparlodha✅ Deployed to: https://gp-pindkeparlodha-wsye6o.web.app
+
+✅ Site settings loaded: {Pindkepar data}```
+
 ```
 
 ### 4. Git Commit
-```
+
+---```
+
 Commit: e7757d3
-Message: fix: Correct tenant ID extraction from Firebase subdomain
+
+## 🧪 **Test It Now**Message: fix: Correct tenant ID extraction from Firebase subdomain
+
 ```
 
----
+### Step 1: Hard Refresh
 
-## 🧪 Testing Instructions
+```---
+
+Press: Ctrl + Shift + R
+
+(This is CRITICAL - clears old cached code)## 🧪 Testing Instructions
+
+```
 
 ### Step 1: Clear Browser Cache
-**IMPORTANT:** The old JavaScript is cached in your browser.
 
-**Option A: Hard Refresh**
-1. Open https://gp-pindkeparlodha-wsye6o.web.app/admin/login
-2. Press `Ctrl + Shift + R` (Windows/Linux) or `Cmd + Shift + R` (Mac)
-3. This forces browser to reload all files
+### Step 2: Open Console (F12)**IMPORTANT:** The old JavaScript is cached in your browser.
+
+```
+
+1. Open: https://www.grampanchayatnawargaon.in**Option A: Hard Refresh**
+
+2. Press F12 (Developer Tools)1. Open https://gp-pindkeparlodha-wsye6o.web.app/admin/login
+
+3. Click "Console" tab2. Press `Ctrl + Shift + R` (Windows/Linux) or `Cmd + Shift + R` (Mac)
+
+4. Look for: "🏛️ Current Tenant: nawargaon" ✅3. This forces browser to reload all files
+
+```
 
 **Option B: Clear Cache (Recommended)**
-1. Press `Ctrl + Shift + Delete`
-2. Select "Cached images and files"
-3. Click "Clear data"
 
-**Option C: Incognito/Private Mode**
-1. Open browser in incognito/private mode
-2. Go to https://gp-pindkeparlodha-wsye6o.web.app/admin/login
+### Step 3: Verify Data1. Press `Ctrl + Shift + Delete`
 
-### Step 2: Login
+```2. Select "Cached images and files"
+
+Each custom domain should now show:3. Click "Clear data"
+
+✅ Its OWN GP name in header
+
+✅ Its OWN settings you uploaded**Option C: Incognito/Private Mode**
+
+✅ DIFFERENT data per GP1. Open browser in incognito/private mode
+
+```2. Go to https://gp-pindkeparlodha-wsye6o.web.app/admin/login
+
+
+
+---### Step 2: Login
+
 ```
-URL: https://gp-pindkeparlodha-wsye6o.web.app/admin/login
+
+## 📊 **Domain → Tenant → Data Mapping**URL: https://gp-pindkeparlodha-wsye6o.web.app/admin/login
+
 Email: admin@pindkeparlodha.in
-Password: Admin@123456
+
+| Custom Domain | Tenant ID | Data Source |Password: Admin@123456
+
+|---------------|-----------|-------------|```
+
+| www.grampanchayatnawargaon.in | `nawargaon` | gramPanchayats/nawargaon/settings/siteConfig |
+
+| www.grampanchayatdongartal.in | `dongartal` | gramPanchayats/dongartal/settings/siteConfig |### Step 3: Verify Success
+
+| www.grampanchayatkatta.in | `katta` | gramPanchayats/katta/settings/siteConfig |
+
+| www.grampanchayatpindkeparlodha.in | `pindkeparlodha` | gramPanchayats/pindkeparlodha/settings/siteConfig |**In Browser Console (F12):**
+
 ```
 
-### Step 3: Verify Success
+**Now each domain loads data from its CORRECT Firestore path!**✅ 🏛️ Tenant from Firebase subdomain: pindkeparlodha (from gp-pindkeparlodha-wsye6o)
 
-**In Browser Console (F12):**
-```
-✅ 🏛️ Tenant from Firebase subdomain: pindkeparlodha (from gp-pindkeparlodha-wsye6o)
 ✅ 🏛️ Current Tenant: pindkeparlodha
-✅ ✅ Firestore offline persistence enabled
+
+---✅ ✅ Firestore offline persistence enabled
+
 ```
+
+## ⚠️ **Must Do: Hard Refresh!**
 
 **NO ERRORS! If you see:**
-- ❌ "Tenant not found" → Clear cache again
-- ❌ "User data not found" → Check you're using correct credentials
+
+```- ❌ "Tenant not found" → Clear cache again
+
+Without hard refresh, browser may still use old cached JavaScript- ❌ "User data not found" → Check you're using correct credentials
+
 - ❌ "Missing permissions" → Tenant detection still wrong, clear cache
 
-**Expected Behavior:**
-1. Login form appears
-2. Enter credentials
+Windows/Linux: Ctrl + Shift + R
+
+Mac: Cmd + Shift + R**Expected Behavior:**
+
+OR: Open in Incognito/Private mode1. Login form appears
+
+```2. Enter credentials
+
 3. Login successful
-4. Redirects to admin dashboard
+
+---4. Redirects to admin dashboard
+
 5. Shows Pindkeparlodha GP data
+
+## ✅ **Status: FIXED & DEPLOYED**
 
 ---
 
-## 📊 Technical Flow
+**Problem:** All custom domains showing "pindkepar" data  
 
-### Before Fix:
+**Fix:** Added custom domains to DOMAIN_MAP  ## 📊 Technical Flow
+
+**Deployed:** All 4 GPs (Dec 26, 2025)  
+
+**Status:** ✅ RESOLVED### Before Fix:
+
 ```
-1. User visits: gp-pindkeparlodha-wsye6o.web.app
+
+**Hard refresh your browser and check console - should now show correct tenant!** 🎉1. User visits: gp-pindkeparlodha-wsye6o.web.app
+
 2. App extracts tenant: 'gp-pindkeparlodha-wsye6o'
 3. Tries to access: gramPanchayats/gp-pindkeparlodha-wsye6o/...
 4. ❌ Document doesn't exist

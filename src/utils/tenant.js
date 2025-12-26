@@ -6,14 +6,19 @@
 // Domain to tenant mapping
 // Add your domains here as you purchase them
 const DOMAIN_MAP = {
-  // Production domains (add as you purchase)
+  // Production domains - Custom Domains
+  'grampanchayatpindkeparlodha.in': 'pindkeparlodha',
+  'www.grampanchayatpindkeparlodha.in': 'pindkeparlodha',
+  'grampanchayatdongartal.in': 'dongartal',
+  'www.grampanchayatdongartal.in': 'dongartal',
+  'grampanchayatkatta.in': 'katta',
+  'www.grampanchayatkatta.in': 'katta',
+  'grampanchayatnawargaon.in': 'nawargaon',
+  'www.grampanchayatnawargaon.in': 'nawargaon',
+  
+  // Old domain (if exists)
   'grampanchayatpindkepaarlodha.in': 'pindkepar',
   'www.grampanchayatpindkepaarlodha.in': 'pindkepar',
-  
-  // Add more domains as you purchase them:
-  // 'grampanchayat-gp3.in': 'gp3',
-  // 'grampanchayat-gp4.in': 'gp4',
-  // etc.
   
   // Development/Testing
   'localhost': 'development',
