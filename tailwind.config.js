@@ -8,15 +8,9 @@ export default {
     extend: {
       fontFamily: {
         sans: [
-          'Inter',
+          'Noto Sans',
           'Noto Sans Devanagari',
-          'ui-sans-serif',
           'system-ui',
-          '-apple-system',
-          'Segoe UI',
-          'Roboto',
-          'Helvetica',
-          'Arial',
           'sans-serif'
         ],
       },

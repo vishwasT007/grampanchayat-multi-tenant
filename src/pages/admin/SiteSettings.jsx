@@ -36,7 +36,11 @@ function SiteSettings() {
     instagram: '',
     officePhoto: '',
     googleMapsLink: '',
-    logo: ''
+    logo: '',
+    headerLeftLogo: '',
+    headerCenterEmblem: '',
+    headerRightLogo1: '',
+    headerRightLogo2: ''
   });
 
   const [errors, setErrors] = useState({});
@@ -47,6 +51,16 @@ function SiteSettings() {
   const [officePhotoPreview, setOfficePhotoPreview] = useState('');
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState('');
+  
+  // New state for header logos
+  const [headerLeftLogoFile, setHeaderLeftLogoFile] = useState(null);
+  const [headerLeftLogoPreview, setHeaderLeftLogoPreview] = useState('');
+  const [headerCenterEmblemFile, setHeaderCenterEmblemFile] = useState(null);
+  const [headerCenterEmblemPreview, setHeaderCenterEmblemPreview] = useState('');
+  const [headerRightLogo1File, setHeaderRightLogo1File] = useState(null);
+  const [headerRightLogo1Preview, setHeaderRightLogo1Preview] = useState('');
+  const [headerRightLogo2File, setHeaderRightLogo2File] = useState(null);
+  const [headerRightLogo2Preview, setHeaderRightLogo2Preview] = useState('');
 
   // Load settings from Firebase on mount
   useEffect(() => {
@@ -68,10 +82,18 @@ function SiteSettings() {
             instagram: settings.socialMedia?.instagram || '',
             officePhoto: settings.officePhoto || '',
             googleMapsLink: settings.googleMapsLink || '',
-            logo: settings.logo || ''
+            logo: settings.logo || '',
+            headerLeftLogo: settings.headerLeftLogo || '',
+            headerCenterEmblem: settings.headerCenterEmblem || '',
+            headerRightLogo1: settings.headerRightLogo1 || '',
+            headerRightLogo2: settings.headerRightLogo2 || ''
           });
           setOfficePhotoPreview(settings.officePhoto || '');
           setLogoPreview(settings.logo || '');
+          setHeaderLeftLogoPreview(settings.headerLeftLogo || '');
+          setHeaderCenterEmblemPreview(settings.headerCenterEmblem || '');
+          setHeaderRightLogo1Preview(settings.headerRightLogo1 || '');
+          setHeaderRightLogo2Preview(settings.headerRightLogo2 || '');
         } else {
           // Initialize with mock data
           setFormData({
@@ -173,6 +195,103 @@ function SiteSettings() {
     setFormData(prev => ({ ...prev, logo: '' }));
   };
 
+  // Header logo handlers
+  const handleHeaderLeftLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        alert('File size should be less than 2MB');
+        return;
+      }
+      setHeaderLeftLogoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setHeaderLeftLogoPreview(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleHeaderCenterEmblemChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        alert('File size should be less than 2MB');
+        return;
+      }
+      setHeaderCenterEmblemFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setHeaderCenterEmblemPreview(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleHeaderRightLogo1Change = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        alert('File size should be less than 2MB');
+        return;
+      }
+      setHeaderRightLogo1File(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setHeaderRightLogo1Preview(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleHeaderRightLogo2Change = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        alert('File size should be less than 2MB');
+        return;
+      }
+      setHeaderRightLogo2File(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setHeaderRightLogo2Preview(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveHeaderLeftLogo = () => {
+    setHeaderLeftLogoFile(null);
+    setHeaderLeftLogoPreview('');
+    setFormData(prev => ({ ...prev, headerLeftLogo: '' }));
+  };
+
+  const handleRemoveHeaderCenterEmblem = () => {
+    setHeaderCenterEmblemFile(null);
+    setHeaderCenterEmblemPreview('');
+    setFormData(prev => ({ ...prev, headerCenterEmblem: '' }));
+  };
+
+  const handleRemoveHeaderRightLogo1 = () => {
+    setHeaderRightLogo1File(null);
+    setHeaderRightLogo1Preview('');
+    setFormData(prev => ({ ...prev, headerRightLogo1: '' }));
+  };
+
+  const handleRemoveHeaderRightLogo2 = () => {
+    setHeaderRightLogo2File(null);
+    setHeaderRightLogo2Preview('');
+    setFormData(prev => ({ ...prev, headerRightLogo2: '' }));
+  };
+
   const validateForm = () => {
     const newErrors = {};
 
@@ -215,6 +334,10 @@ function SiteSettings() {
     try {
       let officePhotoURL = formData.officePhoto;
       let logoURL = formData.logo;
+      let headerLeftLogoURL = formData.headerLeftLogo;
+      let headerCenterEmblemURL = formData.headerCenterEmblem;
+      let headerRightLogo1URL = formData.headerRightLogo1;
+      let headerRightLogo2URL = formData.headerRightLogo2;
 
       // Upload new logo if selected
       if (logoFile) {
@@ -244,10 +367,59 @@ function SiteSettings() {
         officePhotoURL = await uploadImage(officePhotoFile, 'site');
       }
 
+      // Upload header logos
+      if (headerLeftLogoFile) {
+        if (formData.headerLeftLogo) {
+          try {
+            await deleteImage(formData.headerLeftLogo);
+          } catch (error) {
+            console.warn('Failed to delete old header left logo:', error);
+          }
+        }
+        headerLeftLogoURL = await uploadImage(headerLeftLogoFile, 'site/header-logos');
+      }
+
+      if (headerCenterEmblemFile) {
+        if (formData.headerCenterEmblem) {
+          try {
+            await deleteImage(formData.headerCenterEmblem);
+          } catch (error) {
+            console.warn('Failed to delete old center emblem:', error);
+          }
+        }
+        headerCenterEmblemURL = await uploadImage(headerCenterEmblemFile, 'site/header-logos');
+      }
+
+      if (headerRightLogo1File) {
+        if (formData.headerRightLogo1) {
+          try {
+            await deleteImage(formData.headerRightLogo1);
+          } catch (error) {
+            console.warn('Failed to delete old right logo 1:', error);
+          }
+        }
+        headerRightLogo1URL = await uploadImage(headerRightLogo1File, 'site/header-logos');
+      }
+
+      if (headerRightLogo2File) {
+        if (formData.headerRightLogo2) {
+          try {
+            await deleteImage(formData.headerRightLogo2);
+          } catch (error) {
+            console.warn('Failed to delete old right logo 2:', error);
+          }
+        }
+        headerRightLogo2URL = await uploadImage(headerRightLogo2File, 'site/header-logos');
+      }
+
       const settingsData = {
         panchayatName: formData.panchayatName,
         tagline: formData.tagline,
         logo: logoURL,
+        headerLeftLogo: headerLeftLogoURL,
+        headerCenterEmblem: headerCenterEmblemURL,
+        headerRightLogo1: headerRightLogo1URL,
+        headerRightLogo2: headerRightLogo2URL,
         contact: {
           phone: formData.phone,
           email: formData.email,
@@ -410,6 +582,163 @@ function SiteSettings() {
                   </label>
                 </div>
               )}
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-gray-200 my-6"></div>
+
+            {/* Government Header Logos Section */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Government Header Logos</h3>
+              <p className="text-sm text-gray-500 mb-6">
+                These logos will appear in the professional government-style header. All fields are optional.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Header Left Logo (Indian Flag) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Left Logo (Flag/State Emblem)
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Appears on the left side of header</p>
+                  
+                  {headerLeftLogoPreview ? (
+                    <div className="relative inline-block">
+                      <img
+                        src={headerLeftLogoPreview}
+                        alt="Left Logo Preview"
+                        className="w-24 h-24 object-contain rounded-lg border-2 border-gray-300 bg-white p-2"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveHeaderLeftLogo}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                      <ImageIcon className="w-8 h-8 mb-2 text-gray-400" />
+                      <p className="text-xs text-gray-500">Click to upload</p>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleHeaderLeftLogoChange}
+                      />
+                    </label>
+                  )}
+                </div>
+
+                {/* Header Center Emblem */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Center Emblem (National/State)
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Recommended: 52x90px, appears above title</p>
+                  
+                  {headerCenterEmblemPreview ? (
+                    <div className="relative inline-block">
+                      <img
+                        src={headerCenterEmblemPreview}
+                        alt="Center Emblem Preview"
+                        className="w-24 h-24 object-contain rounded-lg border-2 border-gray-300 bg-white p-2"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveHeaderCenterEmblem}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                      <ImageIcon className="w-8 h-8 mb-2 text-gray-400" />
+                      <p className="text-xs text-gray-500">Click to upload</p>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleHeaderCenterEmblemChange}
+                      />
+                    </label>
+                  )}
+                </div>
+
+                {/* Header Right Logo 1 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Right Logo 1
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Recommended: 64x64px</p>
+                  
+                  {headerRightLogo1Preview ? (
+                    <div className="relative inline-block">
+                      <img
+                        src={headerRightLogo1Preview}
+                        alt="Right Logo 1 Preview"
+                        className="w-24 h-24 object-contain rounded-lg border-2 border-gray-300 bg-white p-2"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveHeaderRightLogo1}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                      <ImageIcon className="w-8 h-8 mb-2 text-gray-400" />
+                      <p className="text-xs text-gray-500">Click to upload</p>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleHeaderRightLogo1Change}
+                      />
+                    </label>
+                  )}
+                </div>
+
+                {/* Header Right Logo 2 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Right Logo 2
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">Recommended: 119x64px</p>
+                  
+                  {headerRightLogo2Preview ? (
+                    <div className="relative inline-block">
+                      <img
+                        src={headerRightLogo2Preview}
+                        alt="Right Logo 2 Preview"
+                        className="w-24 h-24 object-contain rounded-lg border-2 border-gray-300 bg-white p-2"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveHeaderRightLogo2}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                      <ImageIcon className="w-8 h-8 mb-2 text-gray-400" />
+                      <p className="text-xs text-gray-500">Click to upload</p>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleHeaderRightLogo2Change}
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>

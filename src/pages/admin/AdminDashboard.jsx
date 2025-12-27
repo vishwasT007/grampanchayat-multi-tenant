@@ -236,7 +236,7 @@ const AdminDashboard = () => {
           <Edit3 size={24} className="text-blue-600" />
           Content Management
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Link
             to="/admin/content/about"
             className="flex items-center gap-3 p-4 border-2 border-blue-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all group"
@@ -260,6 +260,32 @@ const AdminDashboard = () => {
             <div>
               <div className="font-semibold text-gray-700">Edit Education Page</div>
               <div className="text-sm text-gray-500">Schools, anganwadis & programs</div>
+            </div>
+          </Link>
+
+          <Link
+            to="/admin/slider"
+            className="flex items-center gap-3 p-4 border-2 border-orange-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all group"
+          >
+            <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center group-hover:bg-orange-200 transition-colors">
+              <Image size={20} className="text-orange-600" />
+            </div>
+            <div>
+              <div className="font-semibold text-gray-700">Homepage Slider</div>
+              <div className="text-sm text-gray-500">Manage rotating banner images</div>
+            </div>
+          </Link>
+
+          <Link
+            to="/admin/officials"
+            className="flex items-center gap-3 p-4 border-2 border-green-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all group"
+          >
+            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center group-hover:bg-green-200 transition-colors">
+              <Users size={20} className="text-green-600" />
+            </div>
+            <div>
+              <div className="font-semibold text-gray-700">Government Officials</div>
+              <div className="text-sm text-gray-500">Manage ministers & officials</div>
             </div>
           </Link>
         </div>

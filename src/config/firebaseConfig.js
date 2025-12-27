@@ -30,6 +30,24 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
+// Log which Firebase project we're using
+console.log(`
+╔══════════════════════════════════════════════════════════════╗
+║           🔥 FIREBASE INITIALIZED                            ║
+╚══════════════════════════════════════════════════════════════╝
+
+📌 Project ID: ${firebaseConfig.projectId}
+🌐 Auth Domain: ${firebaseConfig.authDomain}
+📁 Storage Bucket: ${firebaseConfig.storageBucket}
+
+${firebaseConfig.projectId === 'grampanchayat-dev' 
+  ? '✅ Using DEVELOPMENT Firebase (safe to test!)' 
+  : '⚠️  Using PRODUCTION Firebase (be careful!)'}
+
+Environment: ${import.meta.env.VITE_ENVIRONMENT || 'not set'}
+Debug Mode: ${import.meta.env.VITE_ENABLE_DEBUG === 'true' ? 'Enabled' : 'Disabled'}
+`);
+
 // Initialize App Check (production only) - Dynamic import to avoid blocking
 let appCheck = null;
 if (import.meta.env.PROD && 
