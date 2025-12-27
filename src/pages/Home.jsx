@@ -67,11 +67,21 @@ const Home = () => {
           <div className="max-w-5xl mx-auto">
             {/* Emblem & Title Section */}
             <div className="text-center mb-8 md:mb-12 animate-fade-in-up">
-              {/* National Emblem Placeholder */}
+              {/* Logo or National Emblem */}
               <div className="inline-block mb-6 p-4 bg-white rounded-full shadow-2xl">
-                <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-orange-600 via-blue-900 to-green-600 rounded-full flex items-center justify-center">
-                  <Award className="text-white w-8 h-8 md:w-10 md:h-10" />
-                </div>
+                {siteSettings.logo ? (
+                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden flex items-center justify-center">
+                    <img 
+                      src={siteSettings.logo} 
+                      alt={getContent(siteSettings.panchayatName)}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-orange-600 via-blue-900 to-green-600 rounded-full flex items-center justify-center">
+                    <Award className="text-white w-8 h-8 md:w-10 md:h-10" />
+                  </div>
+                )}
               </div>
               
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-gray-900 leading-snug">
