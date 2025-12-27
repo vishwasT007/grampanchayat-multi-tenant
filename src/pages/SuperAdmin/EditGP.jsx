@@ -30,6 +30,8 @@ function EditGP() {
     adminEmail: '',
     adminPassword: '',
     adminName: '',
+    url: '',
+    customDomain: '',
     active: true,
   });
 
@@ -61,6 +63,8 @@ function EditGP() {
         adminEmail: gpData.adminEmail || '',
         adminPassword: gpData.adminPassword || '',
         adminName: gpData.adminName || '',
+        url: gpData.url || '',
+        customDomain: gpData.customDomain || '',
         active: gpData.active !== false,
       });
     } catch (err) {
@@ -279,6 +283,47 @@ function EditGP() {
                   rows={3}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Firebase Hosting & Domain Information */}
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Hosting & Domain</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Firebase Hosting URL *
+                </label>
+                <input
+                  type="url"
+                  name="url"
+                  value={formData.url}
+                  onChange={handleChange}
+                  required
+                  placeholder="https://gp-nawargaon.web.app"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  The primary Firebase hosting URL (e.g., https://gp-nawargaon.web.app)
+                </p>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Custom Domain
+                </label>
+                <input
+                  type="text"
+                  name="customDomain"
+                  value={formData.customDomain}
+                  onChange={handleChange}
+                  placeholder="www.grampanchayatnawargaon.in"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  Optional custom domain (e.g., www.grampanchayatnawargaon.in)
+                </p>
               </div>
             </div>
           </div>
