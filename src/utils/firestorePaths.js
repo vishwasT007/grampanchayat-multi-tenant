@@ -89,6 +89,9 @@ export const paths = {
   pages: () => `${getBasePath()}/pages`,
   page: (id) => `${getBasePath()}/pages/${id}`,
   
+  // Content (sliders, officials, etc.)
+  content: () => `${getBasePath()}/content`,
+  
   // Metadata
   metadata: () => `${getBasePath()}/metadata`,
   metadataConfig: () => `${getBasePath()}/metadata/config`,

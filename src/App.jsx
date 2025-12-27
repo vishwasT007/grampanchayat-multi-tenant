@@ -49,6 +49,8 @@ import VillageStatistics from './pages/admin/VillageStatistics';
 import VillageStatisticsPublic from './pages/VillageStatistics';
 import AnnouncementsManagement from './pages/admin/AnnouncementsManagement';
 import AnnouncementForm from './pages/admin/AnnouncementForm';
+import SliderManagement from './pages/admin/SliderManagement';
+import OfficialsManagement from './pages/admin/OfficialsManagement';
 import FirebaseSetup from './pages/FirebaseSetup';
 
 // Super Admin Pages
@@ -188,6 +190,8 @@ function App() {
                     <Route path="financials/edit/:id" element={<FinancialForm />} />
                     <Route path="content/about" element={<AboutPageManagement />} />
                     <Route path="content/education" element={<EducationPageManagement />} />
+                    <Route path="slider" element={<SliderManagement />} />
+                    <Route path="officials" element={<OfficialsManagement />} />
                     <Route path="village-statistics" element={<VillageStatistics />} />
                   </Route>
                 </Routes>

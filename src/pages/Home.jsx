@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { 
   Users, 
   FileText, 
@@ -15,10 +16,143 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useSiteSettings } from '../context/SiteSettingsContext';
+import HomeSlider from '../components/home/HomeSlider';
+import OfficialsShowcase from '../components/home/OfficialsShowcase';
 
 const Home = () => {
   const { t, getContent } = useLanguage();
   const { settings: siteSettings, loading: settingsLoading } = useSiteSettings();
+
+  // Dummy data for slider
+  const [slides] = useState([
+    {
+      id: 1,
+      order: 1,
+      image: 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=1200&h=500&fit=crop',
+      title: {
+        en: 'Welcome to Our Gram Panchayat',
+        mr: 'आमच्या ग्राम पंचायतमध्ये आपले स्वागत आहे'
+      },
+      description: {
+        en: 'Working together for village development and prosperity',
+        mr: 'गावाच्या विकासासाठी आणि समृद्धीसाठी एकत्र काम करत आहोत'
+      }
+    },
+    {
+      id: 2,
+      order: 2,
+      image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1200&h=500&fit=crop',
+      title: {
+        en: 'Digital India Initiative',
+        mr: 'डिजिटल इंडिया उपक्रम'
+      },
+      description: {
+        en: 'Empowering citizens through technology and e-governance',
+        mr: 'तंत्रज्ञान आणि ई-गव्हर्नन्सद्वारे नागरिकांना सक्षम करणे'
+      }
+    },
+    {
+      id: 3,
+      order: 3,
+      image: 'https://images.unsplash.com/photo-1533854775446-95c4609da544?w=1200&h=500&fit=crop',
+      title: {
+        en: 'Clean & Green Village',
+        mr: 'स्वच्छ आणि हरितगाव'
+      },
+      description: {
+        en: 'Building a sustainable and eco-friendly community',
+        mr: 'शाश्वत आणि पर्यावरणपूरक समुदाय तयार करणे'
+      }
+    }
+  ]);
+
+  // Dummy data for officials
+  const [officials] = useState([
+    {
+      id: 1,
+      order: 1,
+      name: {
+        en: 'Ramesh Kumar Patil',
+        mr: 'रमेश कुमार पाटील'
+      },
+      honorific: {
+        en: 'Shri',
+        mr: 'श्री'
+      },
+      designation: {
+        en: 'Sarpanch',
+        mr: 'सरपंच'
+      },
+      additionalInfo: {
+        en: 'Gram Panchayat Pindkepar',
+        mr: 'ग्राम पंचायत पिंडकेपार'
+      },
+      photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop'
+    },
+    {
+      id: 2,
+      order: 2,
+      name: {
+        en: 'Sunita Devi Sharma',
+        mr: 'सुनीता देवी शर्मा'
+      },
+      honorific: {
+        en: 'Smt.',
+        mr: 'श्रीमती'
+      },
+      designation: {
+        en: 'Deputy Sarpanch',
+        mr: 'उपसरपंच'
+      },
+      additionalInfo: {
+        en: 'Gram Panchayat Pindkepar',
+        mr: 'ग्राम पंचायत पिंडकेपार'
+      },
+      photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&h=300&fit=crop'
+    },
+    {
+      id: 3,
+      order: 3,
+      name: {
+        en: 'Vijay Singh Thakur',
+        mr: 'विजय सिंह ठाकूर'
+      },
+      honorific: {
+        en: 'Shri',
+        mr: 'श्री'
+      },
+      designation: {
+        en: 'Gram Sevak',
+        mr: 'ग्राम सेवक'
+      },
+      additionalInfo: {
+        en: 'Village Development Officer',
+        mr: 'गाव विकास अधिकारी'
+      },
+      photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&h=300&fit=crop'
+    },
+    {
+      id: 4,
+      order: 4,
+      name: {
+        en: 'Anjali Deshmukh',
+        mr: 'अंजली देशमुख'
+      },
+      honorific: {
+        en: 'Smt.',
+        mr: 'श्रीमती'
+      },
+      designation: {
+        en: 'Secretary',
+        mr: 'सचिव'
+      },
+      additionalInfo: {
+        en: 'Panchayat Administration',
+        mr: 'पंचायत प्रशासन'
+      },
+      photo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&h=300&fit=crop'
+    }
+  ]);
 
   // Show loading state while data is being fetched or if settings are null
   if (settingsLoading || !siteSettings) {
@@ -34,6 +168,11 @@ const Home = () => {
 
   return (
     <div className="overflow-hidden">
+      {/* Government Officials Showcase Section - Top Priority */}
+      {officials && officials.length > 0 && (
+        <OfficialsShowcase officials={officials} />
+      )}
+
       {/* Hero Section - Modern Government Style */}
       <section className="relative overflow-hidden min-h-[650px] md:min-h-[700px] lg:min-h-[750px] flex items-center">
         {/* Animated Background Pattern */}
@@ -130,6 +269,13 @@ const Home = () => {
           </svg>
         </div>
       </section>
+
+      {/* Homepage Slider Section */}
+      {slides && slides.length > 0 && (
+        <section className="py-8 md:py-12 bg-white">
+          <HomeSlider slides={slides} />
+        </section>
+      )}
 
       {/* Quick Info Section - Government Contact Cards */}
       <section className="py-12 md:py-16 lg:py-20 bg-gradient-to-br from-gray-50 via-blue-50/30 to-orange-50/30">
