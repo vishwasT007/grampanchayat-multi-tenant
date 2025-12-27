@@ -281,48 +281,51 @@ const ViewGP = () => {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Firebase Hosting URL */}
                 <div className="flex items-start gap-3">
                   <Globe className="w-5 h-5 text-gray-400 mt-0.5" />
                   <div className="flex-1">
-                    <p className="text-sm text-gray-500">Domain</p>
+                    <p className="text-sm text-gray-500">Firebase Hosting URL</p>
                     <div className="flex items-center gap-2">
-                      {domainUpdating ? (
-                        <div className="flex items-center gap-2">
-                          <Loader className="w-4 h-4 text-indigo-600 animate-spin" />
-                          <p className="text-gray-600 italic">Deploying...</p>
-                        </div>
-                      ) : (
+                      {gp.url ? (
                         <>
-                          <p className="text-gray-900 font-medium">{gp.domain || 'Not configured'}</p>
-                          {gp.domain && (
-                            <button
-                              onClick={() => window.open(`https://${gp.domain}`, '_blank')}
-                              className="text-indigo-600 hover:text-indigo-800"
-                              title="Open site in new tab"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </button>
-                          )}
+                          <p className="text-gray-900 font-medium break-all">{gp.url}</p>
+                          <button
+                            onClick={() => window.open(gp.url, '_blank')}
+                            className="text-indigo-600 hover:text-indigo-800 flex-shrink-0"
+                            title="Open site in new tab"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </button>
                         </>
+                      ) : (
+                        <p className="text-amber-600 font-medium">Not configured</p>
                       )}
                     </div>
-                    {gp.subdomain && (
-                      <p className="text-xs text-gray-500 mt-1">Subdomain: {gp.subdomain}</p>
-                    )}
-                    {gp.domainStatus && (
-                      <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block ${
-                        gp.domainStatus === 'active' ? 'bg-green-100 text-green-700' :
-                        gp.domainStatus === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {gp.domainStatus}
-                      </span>
-                    )}
-                    {!gp.domain && !domainUpdating && (
-                      <p className="text-xs text-amber-600 mt-1">
-                        ⏳ Deployment in progress... Domain will appear here automatically.
-                      </p>
-                    )}
+                  </div>
+                </div>
+
+                {/* Custom Domain */}
+                <div className="flex items-start gap-3">
+                  <Globe className="w-5 h-5 text-gray-400 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-500">Custom Domain</p>
+                    <div className="flex items-center gap-2">
+                      {gp.customDomain ? (
+                        <>
+                          <p className="text-gray-900 font-medium break-all">{gp.customDomain}</p>
+                          <button
+                            onClick={() => window.open(`https://${gp.customDomain}`, '_blank')}
+                            className="text-indigo-600 hover:text-indigo-800 flex-shrink-0"
+                            title="Open custom domain in new tab"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <p className="text-gray-500 font-medium">Not configured</p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
