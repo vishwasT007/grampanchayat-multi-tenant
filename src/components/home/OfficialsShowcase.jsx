@@ -10,13 +10,20 @@ const OfficialsShowcase = ({ officials = [] }) => {
   return (
     <section className="bg-white py-12">
       <div className="mx-auto" style={{ maxWidth: '1200px', paddingLeft: '24px', paddingRight: '24px' }}>
-        {/* Officials Grid - EXACT 3 columns, 64px gap horizontal, 56px gap vertical */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ columnGap: '64px', rowGap: '56px' }}>
+        {/* Officials Grid - 3 columns with professional layout and centered incomplete rows */}
+        <div 
+          className="grid gap-x-16 gap-y-14 justify-items-center"
+          style={{
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            maxWidth: '900px',
+            margin: '0 auto'
+          }}
+        >
           {officials.map((official, index) => (
-            <div key={index} className="flex flex-col items-center">
+            <div key={index} className="flex flex-col items-center w-full">
               {/* CIRCULAR IMAGE - 140px × 140px, 1.5px border */}
               <div 
-                className="rounded-full bg-white overflow-hidden mb-4"
+                className="rounded-full bg-white overflow-hidden mb-4 flex-shrink-0"
                 style={{
                   width: '140px',
                   height: '140px',
@@ -36,24 +43,23 @@ const OfficialsShowcase = ({ officials = [] }) => {
                 )}
               </div>
 
-              {/* TEXT BLOCK - Center aligned */}
-              <div className="text-center" style={{ maxWidth: '260px' }}>
-                {/* DESIGNATION - 15px, 600 weight, #1F2937 */}
+              {/* TEXT BLOCK - Center aligned, professional typography */}
+              <div className="text-center" style={{ maxWidth: '200px' }}>
+                {/* DESIGNATION - 15px, 600 weight, professional color */}
                 <p 
-                  className="font-semibold text-center mb-1.5"
+                  className="font-semibold text-center mb-2 leading-relaxed"
                   style={{
                     fontSize: '15px',
                     fontWeight: 600,
-                    color: '#1F2937',
-                    lineHeight: '1.4'
+                    color: '#1F2937'
                   }}
                 >
                   {getContent(official.designation)}
                 </p>
 
-                {/* NAME - 14px, 400 weight, #374151 */}
+                {/* NAME - 14px, 400 weight, subtle color */}
                 <p 
-                  className="text-center"
+                  className="text-center leading-relaxed"
                   style={{
                     fontSize: '14px',
                     fontWeight: 400,

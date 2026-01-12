@@ -1,0 +1,72 @@
+{"users": [
+{
+  "localId": "UhVVj2xsCyO7iMsRHyiRNBWhcYJ2",
+  "email": "admin@pindkeparlodha.in",
+  "emailVerified": true,
+  "passwordHash": "ZqMkZLKsxI3PIATSOLFTyVHQLeCC4t2RruzWjMQ7KsqtmFxNiUXnXIvLf0mcd0nw8wlUroC+tneXwvfK9oxt7A==",
+  "salt": "kX7qNN8XvvA99w==",
+  "displayName": "Pindkeparlodha Admin",
+  "lastSignedInAt": "1767526556973",
+  "createdAt": "1766418161661",
+  "disabled": false,
+  "customAttributes": "{\"role\":\"admin\",\"tenantId\":\"pindkeparlodha\"}",
+  "providerUserInfo": []
+},
+{
+  "localId": "lsdX5PozHPSNfmf8hAjdmdHnUM12",
+  "email": "admin@dongartal.in",
+  "emailVerified": true,
+  "passwordHash": "smnvjie4pxfpjeOaWsicMUwCGKrCbXW30b1+ArTMVRfN1TZwLCDb9npQszrkU4n2U5CNj8eY7yQ6FUfrbbliSQ==",
+  "salt": "M6l5gQBKrHbkKg==",
+  "displayName": "Admin",
+  "lastSignedInAt": "1766826894103",
+  "createdAt": "1766422330915",
+  "disabled": false,
+  "providerUserInfo": []
+},
+{
+  "localId": "qLrK8joeorRBNuLfb2vvge8ULqD3",
+  "email": "superadmin@grampanchayat.in",
+  "emailVerified": false,
+  "passwordHash": "qRa/LrWnOVwfEuwNJWvxoiGCDKYAxwtQKncOIq5RdL6nHFYaMIABkFRSgKI3537zLr6xDnDjyZh6acZsQWDYtw==",
+  "salt": "9LiAqsvNLguNxA==",
+  "lastSignedInAt": "1768209160372",
+  "createdAt": "1765889927245",
+  "disabled": false,
+  "providerUserInfo": []
+},
+{
+  "localId": "wRaEC3vJhKSlCdOF1Poial1xT0v2",
+  "email": "admin@pindkepar.in",
+  "emailVerified": false,
+  "passwordHash": "YLy4928GQ3mraoO4lcsQysrf5QE2Grvy+YCEO3jLM40RMKgy0NxwJ4wyckH4ogCFPdqyd7dFJumWUFQuASLRKw==",
+  "salt": "0SjDllcyXv8U8w==",
+  "lastSignedInAt": "1768236436234",
+  "createdAt": "1768236158736",
+  "providerUserInfo": []
+},
+{
+  "localId": "yYtXoBa8mQd3loU5KJhuj7nHENf1",
+  "email": "admin@nawargaon.in",
+  "emailVerified": true,
+  "passwordHash": "uuSp1KxcqmpzTuV479/yU4dci6Crzpj4z7IUvh5PfUYE/C2M9HVcKkHk4CuKDKLavbJxAGwKEP6VaVN507WqNw==",
+  "salt": "H++hgYQPPpU0Lw==",
+  "displayName": "Admin",
+  "lastSignedInAt": "1766829739287",
+  "createdAt": "1766424482270",
+  "disabled": false,
+  "customAttributes": "{\"role\":\"admin\",\"tenantId\":\"nawargaon\"}",
+  "providerUserInfo": []
+},
+{
+  "localId": "yenFxLlvUMhSsZwtOG3v8GGBqZ83",
+  "email": "admin@katta.in",
+  "emailVerified": false,
+  "passwordHash": "eYFhBxGLqHpX3S27REF676Ep+GMnzP+c8RUDPjljn4oLX/8H560BLmHaxlCr6Uj0mvFODNlh+MgOsIfMqHSRHg==",
+  "salt": "QMMaFHs50wHK+w==",
+  "displayName": "Admin",
+  "lastSignedInAt": "1766827212027",
+  "createdAt": "1766423002406",
+  "disabled": false,
+  "providerUserInfo": []
+}]}

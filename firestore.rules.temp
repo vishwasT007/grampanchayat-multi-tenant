@@ -2,26 +2,9 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // ===========================
-    // TEMPORARY SETUP RULES
-    // Allow all reads and writes for initial setup
-    // CHANGE BACK TO SECURE RULES AFTER SETUP!
-    // ===========================
-    
-    match /gramPanchayats/{tenant}/{document=**} {
-      // TEMPORARY: Allow all reads and writes for initial data setup
-      allow read, write: if true;
-    }
-    
-    match /users/{userId} {
-      // TEMPORARY: Allow all reads and writes
-      allow read, write: if true;
-    }
-    
-    // Allow all other collections temporarily
+    // TEMPORARY: Allow all reads and writes (for adding admin user)
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: true;
     }
   }
 }

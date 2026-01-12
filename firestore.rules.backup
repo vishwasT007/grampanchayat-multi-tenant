@@ -11,22 +11,24 @@ service cloud.firestore {
       return request.auth != null;
     }
     
-    function isAdmin() {
-      return isAuthenticated() && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    // Get user role from specific tenant
+    function getUserRole(tenant) {
+      let userPath = /databases/$(database)/documents/gramPanchayats/$(tenant)/users/$(request.auth.uid);
+      return exists(userPath) ? get(userPath).data.role : null;
     }
     
+    // Check if user is admin for specific tenant
+    function isAdminForTenant(tenant) {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/gramPanchayats/$(tenant)/users/$(request.auth.uid)) &&
+        getUserRole(tenant) in ['admin', 'superAdmin'];
+    }
+    
+    // Check if user is superAdmin (global super admin)
     function isSuperAdmin() {
       return isAuthenticated() && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superAdmin';
-    }
-    
-    function hasTenantAccess(tenant) {
-      return isAuthenticated() && (
-        isSuperAdmin() ||
-        (isAdmin() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenant == tenant) ||
-        (isAdmin() && tenant in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenants)
-      );
+        exists(/databases/$(database)/documents/globalConfig/superAdmins/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/globalConfig/superAdmins/users/$(request.auth.uid)).data.role == 'superadmin';
     }
     
     // ===========================
@@ -38,48 +40,47 @@ service cloud.firestore {
       // Public read access to all GP data
       allow read: if true;
       
-      // Write access only for admins with access to this specific tenant
-      allow write: if hasTenantAccess(tenant);
-    }
-    
-    // ===========================
-    // Users Collection
-    // ===========================
-    
-    match /users/{userId} {
-      // Users can read their own data
-      allow read: if isAuthenticated() && request.auth.uid == userId;
-      
-      // Admins can read all users
-      allow read: if isAdmin() || isSuperAdmin();
-      
-      // Only super admins can create users
-      allow create: if isSuperAdmin();
-      
-      // Users can update their own profile (limited fields)
-      // Cannot change role, tenant, or tenants
-      allow update: if (isAuthenticated() && request.auth.uid == userId &&
-                       !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'tenant', 'tenants'])) ||
-                      isSuperAdmin();
-      
-      // Only super admins can delete users
-      allow delete: if isSuperAdmin();
-    }
-    
-    // ===========================
-    // Admin Management
-    // ===========================
-    
-    match /admin/{document=**} {
-      allow read, write: if isSuperAdmin();
+      // Write access for:
+      // 1. Admins of this specific tenant
+      // 2. Global super admins (can manage all tenants)
+      allow write: if isAdminForTenant(tenant) || isSuperAdmin();
     }
     
     // ===========================
     // System Configuration
+    // (Only superAdmin can modify)
     // ===========================
     
     match /system/{document=**} {
       allow read: if true;
+      allow write: if isSuperAdmin();
+    }
+    
+    // ===========================
+    // Global Configuration (Super Admin)
+    // ===========================
+    
+    // Super Admin users collection
+    match /globalConfig/superAdmins/users/{userId} {
+      // Allow read for authenticated super admins
+      allow read: if isAuthenticated();
+      // Allow write for the user themselves or existing super admins
+      allow write: if isAuthenticated();
+    }
+    
+    // GP metadata (for Super Admin to manage all GPs)
+    match /globalConfig/metadata/gramPanchayats/{gpId} {
+      // Allow read for everyone (public GP list)
+      allow read: if true;
+      // Allow write for super admins ONLY - CRITICAL SECURITY
+      allow write: if isSuperAdmin();
+    }
+    
+    // Other global config documents
+    match /globalConfig/{document=**} {
+      // Allow read for authenticated users
+      allow read: if isAuthenticated();
+      // Allow write for super admins ONLY - CRITICAL SECURITY
       allow write: if isSuperAdmin();
     }
   }

@@ -98,13 +98,16 @@ export default function ManageGPs() {
   };
 
   const handleDelete = async (gpId, gpName) => {
-    if (!confirm(`Are you sure you want to delete "${gpName}"?\n\nThis will remove the GP from the system but preserve its data.`)) {
+    const displayName = gpName || gpId || 'this Gram Panchayat';
+    const confirmationId = gpId; // Use ID for confirmation to avoid issues with undefined names
+    
+    if (!confirm(`Are you sure you want to delete "${displayName}"?\n\nThis will remove the GP from the system but preserve its data.`)) {
       return;
     }
 
-    const confirmText = prompt(`Type "${gpName}" to confirm deletion:`);
-    if (confirmText !== gpName) {
-      alert('GP name did not match. Deletion cancelled.');
+    const confirmText = prompt(`Type "${confirmationId}" to confirm deletion:`);
+    if (confirmText !== confirmationId) {
+      alert('ID did not match. Deletion cancelled.');
       return;
     }
 
@@ -252,14 +255,14 @@ export default function ManageGPs() {
                     <div className="flex items-start gap-4 mb-4">
                       {/* Logo/Initial */}
                       <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-2xl flex-shrink-0">
-                        {gp.name.charAt(0)}
+                        {gp.name?.charAt(0) || gp.id?.charAt(0) || 'G'}
                       </div>
 
                       {/* Details */}
                       <div className="flex-1">
                         <div className="flex items-start justify-between mb-2">
                           <div>
-                            <h3 className="text-lg font-semibold text-gray-900">{gp.name}</h3>
+                            <h3 className="text-lg font-semibold text-gray-900">{gp.name || 'Unnamed GP'}</h3>
                             {gp.nameMarathi && (
                               <p className="text-sm text-gray-500">{gp.nameMarathi}</p>
                             )}
@@ -311,8 +314,8 @@ export default function ManageGPs() {
 
                         {/* Timestamps */}
                         <div className="text-xs text-gray-500">
-                          Created: {new Date(gp.createdAt.seconds * 1000).toLocaleDateString('en-IN')}
-                          {gp.updatedAt && (
+                          Created: {gp.createdAt?.seconds ? new Date(gp.createdAt.seconds * 1000).toLocaleDateString('en-IN') : 'N/A'}
+                          {gp.updatedAt?.seconds && (
                             <span className="ml-4">
                               Updated: {new Date(gp.updatedAt.seconds * 1000).toLocaleDateString('en-IN')}
                             </span>
@@ -344,7 +347,7 @@ export default function ManageGPs() {
                     {gp.active ? 'Deactivate' : 'Activate'}
                   </button>
                   <button
-                    onClick={() => handleDelete(gp.id, gp.name)}
+                    onClick={() => handleDelete(gp.id, gp.name || gp.id)}
                     className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition font-medium ml-auto"
                   >
                     <Trash2 className="w-4 h-4" />

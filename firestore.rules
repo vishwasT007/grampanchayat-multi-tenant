@@ -32,6 +32,41 @@ service cloud.firestore {
     }
     
     // ===========================
+    // Global Collections
+    // (Shared across all gram panchayats)
+    // ===========================
+    
+    // Global Officials collection (read by all, write by admin users)
+    match /officials/{officialId} {
+      // Allow read for everyone (public display on all GPs)
+      allow read: if true;
+      // Allow write for authenticated admin users
+      allow write: if isAuthenticated() && 
+        exists(/databases/$(database)/documents/gramPanchayats/{tenant}/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/gramPanchayats/{tenant}/users/$(request.auth.uid)).data.role in ['admin', 'superAdmin'];
+    }
+    
+    // Global Sliders collection (read by all, write by admin users)
+    match /sliders/{sliderId} {
+      // Allow read for everyone (public display on homepage)
+      allow read: if true;
+      // Allow write for authenticated admin users
+      allow write: if isAuthenticated() && 
+        exists(/databases/$(database)/documents/gramPanchayats/{tenant}/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/gramPanchayats/{tenant}/users/$(request.auth.uid)).data.role in ['admin', 'superAdmin'];
+    }
+    
+    // Global Header Config (read by all, write by admin users)
+    match /headerConfig/{document=**} {
+      // Allow read for everyone (public display on header)
+      allow read: if true;
+      // Allow write for authenticated admin users
+      allow write: if isAuthenticated() && 
+        exists(/databases/$(database)/documents/gramPanchayats/{tenant}/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/gramPanchayats/{tenant}/users/$(request.auth.uid)).data.role in ['admin', 'superAdmin'];
+    }
+    
+    // ===========================
     // Multi-Tenant Gram Panchayat Data
     // Each GP's data is isolated by tenant ID
     // ===========================

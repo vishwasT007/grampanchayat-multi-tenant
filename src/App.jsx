@@ -54,6 +54,11 @@ import VillageStatistics from "./pages/admin/VillageStatistics";
 import VillageStatisticsPublic from "./pages/VillageStatistics";
 import AnnouncementsManagement from "./pages/admin/AnnouncementsManagement";
 import AnnouncementForm from "./pages/admin/AnnouncementForm";
+import OfficialsManagement from "./pages/admin/OfficialsManagement";
+import OfficialForm from "./pages/admin/OfficialForm";
+import SliderManagement from "./pages/admin/SliderManagement";
+import SliderForm from "./pages/admin/SliderForm";
+import HeaderSettingsForm from "./pages/admin/HeaderSettingsForm";
 import FirebaseSetup from "./pages/FirebaseSetup";
 
 // Super Admin Pages
@@ -74,10 +79,10 @@ function App() {
   return (
     <Router>
       <ThemeProvider>
-        {/* <AuthProvider> */}
+        <AuthProvider>
         <SiteSettingsProvider>
           <LanguageProvider>
-            {/* <SuperAdminProvider> */}
+            <SuperAdminProvider>
             <Routes>
               {/* Redirect root to Super Admin login on Super Admin domain */}
               {isSuperAdminDomain && (
@@ -162,6 +167,8 @@ function App() {
 
               {/* Admin Routes */}
               <Route path="/admin/login" element={<AdminLogin />} />
+              {/* Redirect common typos to correct routes */}
+              <Route path="/admin/slider" element={<Navigate to="/admin/sliders" replace />} />
               <Route
                 path="/admin"
                 element={
@@ -208,6 +215,13 @@ function App() {
                 <Route path="financials" element={<FinancialsManagement />} />
                 <Route path="financials/new" element={<FinancialForm />} />
                 <Route path="financials/edit/:id" element={<FinancialForm />} />
+                <Route path="officials" element={<OfficialsManagement />} />
+                <Route path="officials/new" element={<OfficialForm />} />
+                <Route path="officials/edit/:id" element={<OfficialForm />} />
+                <Route path="sliders" element={<SliderManagement />} />
+                <Route path="sliders/new" element={<SliderForm />} />
+                <Route path="sliders/edit/:id" element={<SliderForm />} />
+                <Route path="settings/header" element={<HeaderSettingsForm />} />
                 <Route path="content/about" element={<AboutPageManagement />} />
                 <Route
                   path="content/education"
@@ -221,10 +235,10 @@ function App() {
             </Routes>
             {/* Tenant Indicator for development */}
             <TenantIndicator />
-            {/* </SuperAdminProvider> */}
+            </SuperAdminProvider>
           </LanguageProvider>
         </SiteSettingsProvider>
-        {/* </AuthProvider> */}
+        </AuthProvider>
       </ThemeProvider>
     </Router>
   );

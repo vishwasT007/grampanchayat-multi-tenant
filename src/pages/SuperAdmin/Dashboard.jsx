@@ -234,11 +234,11 @@ export default function Dashboard() {
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold">
-                      {gp.name.charAt(0)}
+                      {gp.name?.charAt(0) || gp.id?.charAt(0) || 'G'}
                     </div>
                     <div>
-                      <h4 className="font-semibold text-gray-900">{gp.name}</h4>
-                      <p className="text-sm text-gray-500">{gp.district}, {gp.state}</p>
+                      <h4 className="font-semibold text-gray-900">{gp.name || gp.id || 'Unnamed GP'}</h4>
+                      <p className="text-sm text-gray-500">{gp.district || 'N/A'}, {gp.state || 'N/A'}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">

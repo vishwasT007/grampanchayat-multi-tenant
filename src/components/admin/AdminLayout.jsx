@@ -14,7 +14,9 @@ import {
   MessageSquare,
   Download,
   Languages,
-  Megaphone
+  Megaphone,
+  UserCircle,
+  Zap
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
@@ -38,12 +40,15 @@ const AdminLayout = () => {
     { path: '/admin/services', label: 'Services', icon: Briefcase },
     { path: '/admin/schemes', label: 'Schemes', icon: FileText },
     { path: '/admin/forms', label: 'Forms & Downloads', icon: Download },
+    { path: '/admin/sliders', label: 'Home Sliders', icon: Zap },
     { path: '/admin/gallery', label: 'Gallery', icon: Image },
     { path: '/admin/financials', label: 'Financials', icon: DollarSign },
+    { path: '/admin/officials', label: 'Officials', icon: UserCircle },
     { path: '/admin/notices', label: 'Notices & Tenders', icon: Bell },
     { path: '/admin/announcements', label: 'Announcements', icon: Megaphone },
     { path: '/admin/grievances', label: 'Grievances', icon: MessageSquare },
     { path: '/admin/village-statistics', label: 'Village Statistics', icon: FileText },
+    { path: '/admin/settings/header', label: 'Header Settings', icon: Settings },
     { path: '/admin/settings', label: 'Settings', icon: Settings },
   ];
 

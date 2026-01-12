@@ -1,339 +1,204 @@
 import { useState, useEffect } from 'react';
-import { Save, Plus, Trash2, Image as ImageIcon, Edit2 } from 'lucide-react';
-import BilingualInput from '../../components/common/BilingualInput';
-import { getOfficials, updateOfficials } from '../../services/officialsService';
-import { uploadImage, deleteImage } from '../../services/storageService';
+import { Link } from 'react-router-dom';
+import { Plus, Edit, Trash2, Image as ImageIcon, ArrowUp, ArrowDown } from 'lucide-react';
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { db } from '../../config/firebaseConfig';
 
 const OfficialsManagement = () => {
   const [officials, setOfficials] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [editingIndex, setEditingIndex] = useState(null);
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    loadOfficials();
+    const officialsRef = collection(db, 'officials');
+    const q = query(officialsRef, orderBy('order', 'asc'));
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const officialsData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setOfficials(officialsData);
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Error fetching officials:', error);
+        setError('Failed to load officials');
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
   }, []);
 
-  const loadOfficials = async () => {
-    try {
-      setLoading(true);
-      const data = await getOfficials();
-      setOfficials(data || []);
-    } catch (error) {
-      console.error('Error loading officials:', error);
-      setMessage({ type: 'error', text: 'Failed to load officials' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const addOfficial = () => {
-    const newOfficial = {
-      id: Date.now().toString(),
-      name: { en: '', mr: '' },
-      honorific: { en: 'Shri.', mr: 'श्री.' },
-      designation: { en: '', mr: '' },
-      additionalInfo: { en: '', mr: '' },
-      photo: '',
-      order: officials.length,
-    };
-    setOfficials([...officials, newOfficial]);
-    setEditingIndex(officials.length);
-  };
-
-  const removeOfficial = async (index) => {
-    if (!confirm('Are you sure you want to delete this official?')) return;
-
-    const official = officials[index];
-    
-    // Delete photo from storage if exists
-    if (official.photo) {
-      try {
-        await deleteImage(official.photo);
-      } catch (error) {
-        console.error('Error deleting photo:', error);
-      }
-    }
-
-    setOfficials(officials.filter((_, i) => i !== index));
-    if (editingIndex === index) setEditingIndex(null);
-  };
-
-  const handlePhotoChange = async (index, file) => {
-    if (!file) return;
-
-    // Validate file
-    if (!file.type.startsWith('image/')) {
-      setMessage({ type: 'error', text: 'Please select an image file' });
-      return;
-    }
-
-    if (file.size > 2 * 1024 * 1024) {
-      setMessage({ type: 'error', text: 'Image size should be less than 2MB' });
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this official?')) {
       return;
     }
 
     try {
-      // Show loading state
-      const newOfficials = [...officials];
-      newOfficials[index] = { ...newOfficials[index], uploading: true };
-      setOfficials(newOfficials);
-
-      // Upload image
-      const imageUrl = await uploadImage(file, 'officials');
-
-      // Update official
-      newOfficials[index] = { ...newOfficials[index], photo: imageUrl, uploading: false };
-      setOfficials(newOfficials);
-
-      setMessage({ type: 'success', text: 'Photo uploaded successfully' });
-      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      await deleteDoc(doc(db, 'officials', id));
     } catch (error) {
-      console.error('Error uploading photo:', error);
-      setMessage({ type: 'error', text: 'Failed to upload photo' });
-      
-      // Remove loading state
-      const newOfficials = [...officials];
-      newOfficials[index] = { ...newOfficials[index], uploading: false };
-      setOfficials(newOfficials);
+      console.error('Error deleting official:', error);
+      alert('Failed to delete official');
     }
   };
 
-  const handleOfficialChange = (index, field, value) => {
+  const moveOfficial = async (index, direction) => {
     const newOfficials = [...officials];
-    newOfficials[index] = { ...newOfficials[index], [field]: value };
-    setOfficials(newOfficials);
-  };
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
 
-  const handleSave = async () => {
-    // Validate
-    const invalidOfficials = officials.filter(o => !o.name.en || !o.designation.en);
-    if (invalidOfficials.length > 0) {
-      setMessage({ type: 'error', text: 'Please fill in name and designation for all officials' });
-      return;
-    }
+    if (targetIndex < 0 || targetIndex >= newOfficials.length) return;
+
+    // Swap orders
+    const currentOrder = newOfficials[index].order;
+    const targetOrder = newOfficials[targetIndex].order;
 
     try {
-      setSaving(true);
-      setMessage({ type: '', text: '' });
-
-      await updateOfficials(officials);
-
-      setMessage({ type: 'success', text: 'Officials saved successfully!' });
-      setEditingIndex(null);
-      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      await Promise.all([
+        updateDoc(doc(db, 'officials', newOfficials[index].id), {
+          order: targetOrder
+        }),
+        updateDoc(doc(db, 'officials', newOfficials[targetIndex].id), {
+          order: currentOrder
+        })
+      ]);
     } catch (error) {
-      console.error('Error saving officials:', error);
-      setMessage({ type: 'error', text: 'Failed to save officials' });
-    } finally {
-      setSaving(false);
+      console.error('Error updating order:', error);
+      alert('Failed to update order');
     }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="w-12 h-12 border-4 border-orange-600 border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading officials...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Government Officials Management</h1>
-          <p className="text-gray-600">Manage ministers, secretaries, and other government officials displayed on homepage</p>
+          <h1 className="text-2xl font-bold text-gray-900">Officials Showcase</h1>
+          <p className="text-gray-600 mt-1">Manage officials displayed on homepage</p>
         </div>
-        <button
-          onClick={addOfficial}
-          className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+        <Link
+          to="/admin/officials/new"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
         >
           <Plus size={20} />
           Add Official
-        </button>
+        </Link>
       </div>
 
-      {/* Message */}
-      {message.text && (
-        <div className={`mb-6 p-4 rounded-lg ${
-          message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
-        }`}>
-          {message.text}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          {error}
         </div>
       )}
 
       {/* Officials Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {officials.length === 0 ? (
-          <div className="col-span-full text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-            <ImageIcon size={48} className="mx-auto text-gray-400 mb-4" />
-            <p className="text-gray-600 mb-4">No officials yet. Add your first official to get started!</p>
-            <button
-              onClick={addOfficial}
-              className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
-            >
-              Add First Official
-            </button>
-          </div>
-        ) : (
-          officials.map((official, index) => (
-            <div key={official.id} className={`bg-white rounded-lg shadow-md overflow-hidden border-2 ${
-              editingIndex === index ? 'border-orange-500' : 'border-gray-200'
-            }`}>
-              {/* Photo Section */}
-              <div className="relative bg-gradient-to-br from-orange-50 to-green-50 aspect-[3/4]">
+      {officials.length === 0 ? (
+        <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+          <ImageIcon size={48} className="mx-auto text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No officials yet</h3>
+          <p className="text-gray-600 mb-4">Get started by adding your first official</p>
+          <Link
+            to="/admin/officials/new"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            <Plus size={20} />
+            Add Official
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {officials.map((official, index) => (
+            <div key={official.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+              {/* Official Photo */}
+              <div className="aspect-square bg-gray-100 flex items-center justify-center">
                 {official.photo ? (
-                  <div className="relative group h-full">
-                    <img
-                      src={official.photo}
-                      alt={official.name.en}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <label className="px-4 py-2 bg-white text-gray-800 rounded cursor-pointer hover:bg-gray-100">
-                        Change Photo
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handlePhotoChange(index, e.target.files[0])}
-                          className="hidden"
-                          disabled={official.uploading}
-                        />
-                      </label>
-                    </div>
-                  </div>
+                  <img
+                    src={official.photo}
+                    alt={official.name?.en || 'Official'}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
-                  <label className="flex flex-col items-center justify-center h-full cursor-pointer hover:bg-orange-100/50 transition-colors">
-                    {official.uploading ? (
-                      <div className="w-12 h-12 border-4 border-orange-600 border-t-transparent rounded-full animate-spin"></div>
-                    ) : (
-                      <>
-                        <ImageIcon size={48} className="text-gray-400 mb-2" />
-                        <span className="text-sm text-gray-600">Click to upload photo</span>
-                        <span className="text-xs text-gray-500 mt-1">Recommended: 300x400px</span>
-                      </>
-                    )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handlePhotoChange(index, e.target.files[0])}
-                      className="hidden"
-                      disabled={official.uploading}
-                    />
-                  </label>
+                  <div className="text-gray-400 text-center p-4">
+                    <ImageIcon size={48} className="mx-auto mb-2" />
+                    <p className="text-sm">No photo</p>
+                  </div>
                 )}
               </div>
 
-              {/* Info Section */}
+              {/* Official Details */}
               <div className="p-4">
-                {editingIndex === index ? (
-                  <div className="space-y-3">
-                    {/* Honorific */}
-                    <BilingualInput
-                      label="Honorific"
-                      value={official.honorific}
-                      onChange={(value) => handleOfficialChange(index, 'honorific', value)}
-                      placeholder={{ en: 'Shri./Hon\'ble', mr: 'श्री./मा.' }}
-                    />
-
-                    {/* Name */}
-                    <BilingualInput
-                      label="Name *"
-                      value={official.name}
-                      onChange={(value) => handleOfficialChange(index, 'name', value)}
-                      placeholder={{ en: 'Full Name', mr: 'पूर्ण नाव' }}
-                    />
-
-                    {/* Designation */}
-                    <BilingualInput
-                      label="Designation *"
-                      value={official.designation}
-                      onChange={(value) => handleOfficialChange(index, 'designation', value)}
-                      placeholder={{ en: 'Chief Minister / Minister / Secretary', mr: 'मुख्यमंत्री / मंत्री / सचिव' }}
-                    />
-
-                    {/* Additional Info */}
-                    <BilingualInput
-                      label="Additional Info"
-                      value={official.additionalInfo}
-                      onChange={(value) => handleOfficialChange(index, 'additionalInfo', value)}
-                      placeholder={{ en: 'Department / Ministry', mr: 'विभाग / मंत्रालय' }}
-                    />
-
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setEditingIndex(null)}
-                        className="flex-1 px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors text-sm"
-                      >
-                        Done
-                      </button>
-                      <button
-                        onClick={() => removeOfficial(index)}
-                        className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <h3 className="font-bold text-gray-900 text-sm mb-1 line-clamp-1">
-                      {official.honorific.en} {official.name.en || 'Unnamed Official'}
-                    </h3>
-                    <p className="text-xs text-orange-600 font-semibold mb-1 line-clamp-2">
-                      {official.designation.en || 'No designation'}
+                <div className="mb-3">
+                  <p className="text-sm text-gray-600 mb-1">
+                    {official.designation?.en || 'No designation'}
+                  </p>
+                  <p className="font-semibold text-gray-900">
+                    {official.name?.en || 'No name'}
+                  </p>
+                  {official.additionalInfo?.en && (
+                    <p className="text-sm text-gray-600 mt-1">
+                      {official.additionalInfo.en}
                     </p>
-                    {official.additionalInfo.en && (
-                      <p className="text-xs text-gray-600 line-clamp-1 mb-2">
-                        {official.additionalInfo.en}
-                      </p>
-                    )}
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setEditingIndex(index)}
-                        className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-orange-50 text-orange-600 rounded hover:bg-orange-100 transition-colors text-sm"
-                      >
-                        <Edit2 size={14} />
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => removeOfficial(index)}
-                        className="px-3 py-1.5 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors text-sm"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                )}
+                  )}
+                </div>
+
+                {/* Order Badge */}
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                    Order: {official.order}
+                  </span>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => moveOfficial(index, 'up')}
+                    disabled={index === 0}
+                    className="p-2 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Move up"
+                  >
+                    <ArrowUp size={18} />
+                  </button>
+                  <button
+                    onClick={() => moveOfficial(index, 'down')}
+                    disabled={index === officials.length - 1}
+                    className="p-2 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Move down"
+                  >
+                    <ArrowDown size={18} />
+                  </button>
+                  <div className="flex-1"></div>
+                  <Link
+                    to={`/admin/officials/edit/${official.id}`}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                    title="Edit"
+                  >
+                    <Edit size={18} />
+                  </Link>
+                  <button
+                    onClick={() => handleDelete(official.id)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                    title="Delete"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
               </div>
             </div>
-          ))
-        )}
-      </div>
-
-      {/* Save Button */}
-      {officials.length > 0 && (
-        <div className="flex justify-end">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-semibold"
-          >
-            {saving ? (
-              <>
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save size={20} />
-                Save All Officials
-              </>
-            )}
-          </button>
+          ))}
         </div>
       )}
     </div>
