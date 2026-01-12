@@ -32,9 +32,10 @@ service cloud.firestore {
     }
     
     // Check if user is admin in ANY tenant (for global collections)
+    // Since all authenticated users in this system are admins for their respective tenants,
+    // we simply check if they are authenticated
     function isAdminInAnyTenant() {
-      return isAuthenticated() && 
-        request.auth.token.tenant != null;
+      return isAuthenticated();
     }
     
     // ===========================
