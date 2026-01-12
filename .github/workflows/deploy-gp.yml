@@ -97,35 +97,40 @@ jobs:
             firebase projects:list 1>/dev/null
           fi
 
-      - name: Create Firebase hosting site (ensure unique)
+      - name: Create or use existing Firebase hosting site
         id: create_site
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
           BASE_NORMALIZED="${{ steps.normalize_subdomain.outputs.normalized }}"
           CANDIDATE="$BASE_NORMALIZED"
-          echo "Attempting to create hosting site: $CANDIDATE"
+          echo "Checking if hosting site exists: $CANDIDATE"
+          
+          # Check if site already exists first
           if [ "$USE_TOKEN_FALLBACK" = "true" ]; then
-            CREATE_CMD="firebase hosting:sites:create \"$CANDIDATE\" --project \"$FIREBASE_PROJECT_ID\" --token \"$FIREBASE_TOKEN\""
+            SITE_EXISTS=$(firebase hosting:sites:list --project "$FIREBASE_PROJECT_ID" --token "$FIREBASE_TOKEN" 2>&1 | grep -q "$CANDIDATE" && echo "true" || echo "false")
           else
-            CREATE_CMD="firebase hosting:sites:create \"$CANDIDATE\" --project \"$FIREBASE_PROJECT_ID\""
+            SITE_EXISTS=$(firebase hosting:sites:list --project "$FIREBASE_PROJECT_ID" 2>&1 | grep -q "$CANDIDATE" && echo "true" || echo "false")
           fi
-          echo "Running: $CREATE_CMD"
-          if sh -c "$CREATE_CMD" 2>&1; then
+          
+          if [ "$SITE_EXISTS" = "true" ]; then
+            echo "✅ Site $CANDIDATE already exists, reusing it"
             echo "site_id=$CANDIDATE" >> $GITHUB_OUTPUT
           else
-            echo "Initial site creation failed (possibly reserved globally). Generating unique suffix..."
-            SUFFIX=$(head -c 256 /dev/urandom | tr -dc 'a-z0-9' | head -c 6)
-            CANDIDATE="${BASE_NORMALIZED}-${SUFFIX}"
-            echo "Retrying with: $CANDIDATE"
+            echo "Creating new hosting site: $CANDIDATE"
             if [ "$USE_TOKEN_FALLBACK" = "true" ]; then
-              FALLBACK_CMD="firebase hosting:sites:create \"$CANDIDATE\" --project \"$FIREBASE_PROJECT_ID\" --token \"$FIREBASE_TOKEN\""
+              CREATE_CMD="firebase hosting:sites:create \"$CANDIDATE\" --project \"$FIREBASE_PROJECT_ID\" --token \"$FIREBASE_TOKEN\""
             else
-              FALLBACK_CMD="firebase hosting:sites:create \"$CANDIDATE\" --project \"$FIREBASE_PROJECT_ID\""
+              CREATE_CMD="firebase hosting:sites:create \"$CANDIDATE\" --project \"$FIREBASE_PROJECT_ID\""
             fi
-            echo "Running: $FALLBACK_CMD"
-            sh -c "$FALLBACK_CMD" 2>&1 || echo "Site may already exist"
-            echo "site_id=$CANDIDATE" >> $GITHUB_OUTPUT
+            echo "Running: $CREATE_CMD"
+            if sh -c "$CREATE_CMD" 2>&1; then
+              echo "✅ Site created successfully"
+              echo "site_id=$CANDIDATE" >> $GITHUB_OUTPUT
+            else
+              echo "❌ Site creation failed. Using subdomain as-is (may already exist in Firebase)"
+              echo "site_id=$CANDIDATE" >> $GITHUB_OUTPUT
+            fi
           fi
 
       - name: Configure hosting target

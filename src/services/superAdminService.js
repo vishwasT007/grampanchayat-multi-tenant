@@ -376,24 +376,35 @@ export const deleteGramPanchayat = async (gpId) => {
  */
 export const getAllAdminUsers = async () => {
   try {
-    const users = [];
+    const usersMap = new Map(); // Use email as key to deduplicate
     const gps = await getAllGramPanchayats();
     
-    for (const gp of gps) {
+    // Deduplicate GPs by ID
+    const uniqueGps = Array.from(new Map(gps.map(gp => [gp.id, gp])).values());
+    
+    for (const gp of uniqueGps) {
       const usersRef = collection(db, `gramPanchayats/${gp.id}/users`);
       const snapshot = await getDocs(query(usersRef, where('role', '==', 'admin')));
       
       snapshot.forEach(doc => {
-        users.push({
-          id: doc.id,
-          gpId: gp.id,
-          gpName: gp.name,
-          ...doc.data()
-        });
+        const userData = doc.data();
+        const email = userData.email;
+        
+        // Only add if we haven't seen this email before
+        // Use Map to keep only the first occurrence of each email
+        if (!usersMap.has(email)) {
+          usersMap.set(email, {
+            id: doc.id,
+            gpId: gp.id,
+            gpName: gp.name,
+            ...userData
+          });
+        }
       });
     }
     
-    return users;
+    // Convert map to array
+    return Array.from(usersMap.values());
   } catch (error) {
     console.error('Error getting all admin users:', error);
     throw error;

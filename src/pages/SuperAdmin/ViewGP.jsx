@@ -90,7 +90,11 @@ const ViewGP = () => {
       // Load GP users
       try {
         const gpUsers = await getGPUsers(id);
-        setUsers(gpUsers || []);
+        // Deduplicate users by email (in case of duplicates in Firestore)
+        const uniqueUsers = gpUsers ? Array.from(
+          new Map(gpUsers.map(user => [user.email, user])).values()
+        ) : [];
+        setUsers(uniqueUsers);
       } catch (err) {
         console.error('Error loading users:', err);
         setUsers([]);
