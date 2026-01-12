@@ -100,7 +100,8 @@ const OfficialForm = () => {
     if (!photoFile) return formData.photo;
 
     try {
-      const fileName = `officials/${Date.now()}_${photoFile.name}`;
+      const tenant = getTenant();
+      const fileName = `gramPanchayats/${tenant}/officials/${Date.now()}_${photoFile.name}`;
       const storageRef = ref(storage, fileName);
       
       await uploadBytes(storageRef, photoFile);

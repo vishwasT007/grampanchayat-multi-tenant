@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { doc, getDoc, addDoc, updateDoc, collection, query, getDocs } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../config/firebaseConfig';
+import { getTenant } from '../../utils/tenant';
 import { ArrowLeft, Upload, X } from 'lucide-react';
 
 const SliderForm = () => {
@@ -102,7 +103,8 @@ const SliderForm = () => {
     if (!imageFile) return formData.image;
 
     try {
-      const fileName = `sliders/${Date.now()}_${imageFile.name}`;
+      const tenant = getTenant();
+      const fileName = `gramPanchayats/${tenant}/sliders/${Date.now()}_${imageFile.name}`;
       const storageRef = ref(storage, fileName);
       
       await uploadBytes(storageRef, imageFile);

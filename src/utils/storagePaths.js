@@ -7,10 +7,11 @@ import { getTenant } from './tenant';
 
 /**
  * Get base storage path for current tenant
+ * Format: gramPanchayats/{tenantId}
  */
 export const getStorageBasePath = () => {
   const tenant = getTenant();
-  return tenant;
+  return `gramPanchayats/${tenant}`;
 };
 
 /**
