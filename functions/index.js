@@ -11,7 +11,10 @@ const logger = require("firebase-functions/logger");
 const {Octokit} = require("@octokit/rest");
 
 admin.initializeApp();
-setGlobalOptions({maxInstances: 10});
+setGlobalOptions({
+  maxInstances: 10,
+  region: 'asia-south1' // Mumbai, India - matches Firestore location
+});
 
 const githubToken = defineString("GITHUB_TOKEN");
 const GITHUB_OWNER = "vishwasT007";
