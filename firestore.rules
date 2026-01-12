@@ -31,6 +31,12 @@ service cloud.firestore {
         get(/databases/$(database)/documents/globalConfig/superAdmins/users/$(request.auth.uid)).data.role == 'superadmin';
     }
     
+    // Check if user is admin in ANY tenant (for global collections)
+    function isAdminInAnyTenant() {
+      return isAuthenticated() && 
+        request.auth.token.tenant != null;
+    }
+    
     // ===========================
     // Global Collections
     // (Shared across all gram panchayats)
@@ -40,30 +46,24 @@ service cloud.firestore {
     match /officials/{officialId} {
       // Allow read for everyone (public display on all GPs)
       allow read: if true;
-      // Allow write for authenticated admin users
-      allow write: if isAuthenticated() && 
-        exists(/databases/$(database)/documents/gramPanchayats/{tenant}/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/gramPanchayats/{tenant}/users/$(request.auth.uid)).data.role in ['admin', 'superAdmin'];
+      // Allow write for authenticated admin users (any tenant) or super admins
+      allow write: if isAdminInAnyTenant() || isSuperAdmin();
     }
     
     // Global Sliders collection (read by all, write by admin users)
     match /sliders/{sliderId} {
       // Allow read for everyone (public display on homepage)
       allow read: if true;
-      // Allow write for authenticated admin users
-      allow write: if isAuthenticated() && 
-        exists(/databases/$(database)/documents/gramPanchayats/{tenant}/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/gramPanchayats/{tenant}/users/$(request.auth.uid)).data.role in ['admin', 'superAdmin'];
+      // Allow write for authenticated admin users (any tenant) or super admins
+      allow write: if isAdminInAnyTenant() || isSuperAdmin();
     }
     
     // Global Header Config (read by all, write by admin users)
     match /headerConfig/{document=**} {
       // Allow read for everyone (public display on header)
       allow read: if true;
-      // Allow write for authenticated admin users
-      allow write: if isAuthenticated() && 
-        exists(/databases/$(database)/documents/gramPanchayats/{tenant}/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/gramPanchayats/{tenant}/users/$(request.auth.uid)).data.role in ['admin', 'superAdmin'];
+      // Allow write for authenticated admin users (any tenant) or super admins
+      allow write: if isAdminInAnyTenant() || isSuperAdmin();
     }
     
     // ===========================
