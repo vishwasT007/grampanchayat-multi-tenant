@@ -82,7 +82,64 @@ exports.onGPDeleted = onDocumentDeleted(
       }
     },
 );
+// Cloud Function to create Firebase Auth user when GP is created
+exports.createGPAuthUser = onCall({cors: true}, async (request) => {
+  if (!request.auth) {
+    throw new Error("Must be authenticated as Super Admin");
+  }
 
+  const {email, password, tenantId, adminName} = request.data;
+
+  if (!email || !password || !tenantId) {
+    throw new Error("Missing required fields: email, password, tenantId");
+  }
+
+  try {
+    logger.info(`Creating Auth user for GP admin: ${email} (tenant: ${tenantId})`);
+
+    // Create Firebase Auth user
+    let authUser;
+    try {
+      authUser = await admin.auth().createUser({
+        email: email,
+        password: password,
+        displayName: adminName || "Admin",
+      });
+      logger.info(`✅ Auth user created: ${authUser.uid}`);
+    } catch (authError) {
+      if (authError.code === "auth/email-already-exists") {
+        // User already exists, get the existing user
+        authUser = await admin.auth().getUserByEmail(email);
+        logger.info(`ℹ️ Auth user already exists: ${authUser.uid}`);
+      } else {
+        throw authError;
+      }
+    }
+
+    // Create user document in Firestore
+    const userDocPath = `gramPanchayats/${tenantId}/users/${authUser.uid}`;
+    await admin.firestore().doc(userDocPath).set({
+      email: email,
+      name: adminName || "Admin",
+      role: "admin",
+      tenantId: tenantId,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      active: true,
+      createdBy: "superadmin",
+    });
+
+    logger.info(`✅ User document created: ${userDocPath}`);
+
+    return {
+      success: true,
+      uid: authUser.uid,
+      message: "Auth user created successfully",
+    };
+  } catch (error) {
+    logger.error("Error creating GP Auth user:", error);
+    throw error;
+  }
+});
 exports.onGPCreated = onDocumentCreated(
     "globalConfig/metadata/gramPanchayats/{gpId}",
     async (event) => {
@@ -237,7 +294,7 @@ exports.getDeploymentStatus = onCall(async (request) => {
 
 // Cloud Function to create Firebase Auth user on first login
 // Called when GP admin tries to login but Auth user doesn't exist
-exports.createAuthUserOnLogin = onCall(async (request) => {
+exports.createAuthUserOnLogin = onCall({cors: true}, async (request) => {
   const {email, password, tenantId} = request.data;
 
   if (!email || !password || !tenantId) {

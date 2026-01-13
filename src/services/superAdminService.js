@@ -24,7 +24,8 @@ import {
   signInWithEmailAndPassword,
   signOut as firebaseSignOut
 } from 'firebase/auth';
-import { db, auth } from '../config/firebaseConfig';
+import { httpsCallable } from 'firebase/functions';
+import { db, auth, functions } from '../config/firebaseConfig';
 
 /**
  * Check if user is super admin
@@ -203,24 +204,22 @@ export const createGramPanchayat = async (gpData) => {
     await setDoc(doc(db, 'globalConfig', 'metadata', 'gramPanchayats', id), gpDocData);
     console.log('✅ GP document created in Firestore');
     
-    // 2. Create placeholder user document in Firestore
-    // The actual Firebase Auth user will be created by Cloud Function on first login
-    const placeholderUid = `pending_${id}_${Date.now()}`;
-    
-    await setDoc(doc(db, `gramPanchayats/${id}/users`, placeholderUid), {
-      email: adminEmail,
-      name: adminName,
-      role: 'admin',
-      tenantId: id,
-      createdAt: Timestamp.now(),
-      active: true,
-      createdBy: 'superadmin',
-      password: adminPassword, // Plain text for Cloud Function to verify
-      passwordLastChanged: Timestamp.now(),
-      isPending: true, // Mark as pending Auth user creation
-      note: 'Auth user will be created on first login or by Cloud Function'
-    });
-    console.log('✅ Placeholder user document created');
+    // 2. Create Firebase Auth user via Cloud Function
+    console.log('🔐 Creating Firebase Auth user...');
+    try {
+      const createGPAuthUser = httpsCallable(functions, 'createGPAuthUser');
+      const authResult = await createGPAuthUser({
+        email: adminEmail,
+        password: adminPassword,
+        tenantId: id,
+        adminName: adminName
+      });
+      console.log('✅ Auth user created:', authResult.data);
+    } catch (authError) {
+      console.error('⚠️ Auth user creation failed (will retry on first login):', authError);
+      // Don't fail the entire GP creation if auth user creation fails
+      // The user can still be created on first login via the fallback mechanism
+    }
     
     // 3. Log the activity
     await logSuperAdminActivity({
