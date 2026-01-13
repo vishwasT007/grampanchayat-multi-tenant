@@ -79,26 +79,29 @@ export const normalizeFirebaseHostingSubdomainToTenantId = (subdomain) => {
     // Remove 'gp-' prefix
     s = s.substring(3);
     
-    // Check if there's a Firebase random suffix (6-7 alphanumeric chars at the end)
-    // Firebase can add suffixes like: ybxjq9 (6 chars) or -abc123 (hyphen + 6 chars)
+    // Firebase adds random suffixes when site names collide
+    // These are typically exactly 6 alphanumeric characters
+    // Can be added with or without a hyphen: -abc123 or abc123
     
-    // Pattern 1: -[a-z0-9]{6,7}$ (with hyphen)
-    const suffixWithHyphen = s.match(/^(.+)-([a-z0-9]{6,7})$/);
+    // Pattern 1: With hyphen: <gpId>-<6chars>
+    // Example: kachurwahi-ybxjq9 -> kachurwahi
+    const suffixWithHyphen = s.match(/^(.+)-([a-z0-9]{6})$/);
     if (suffixWithHyphen) {
       s = suffixWithHyphen[1];
       return s;
     }
     
-    // Pattern 2: [a-z0-9]{6,7}$ (without hyphen, appended directly)
-    // Example: kachurwahiybxjq9 -> kachurwahi + ybxjq9
-    const suffixWithoutHyphen = s.match(/^(.+?)([a-z0-9]{6,7})$/);
+    // Pattern 2: Without hyphen: <gpId><6chars>
+    // Example: kachurwahiybxjq9 -> kachurwahi
+    // Use greedy match for gpId and exactly 6 chars for suffix
+    const suffixWithoutHyphen = s.match(/^(.+)([a-z0-9]{6})$/);
     if (suffixWithoutHyphen) {
       const potentialGpId = suffixWithoutHyphen[1];
       const potentialSuffix = suffixWithoutHyphen[2];
       
-      // Only remove if the suffix looks random (all lowercase + numbers, no meaningful pattern)
+      // Only remove if the suffix looks random (all lowercase + numbers)
       // and the gpId part is at least 4 characters (to avoid false positives)
-      if (potentialGpId.length >= 4 && /^[a-z0-9]{6,7}$/.test(potentialSuffix)) {
+      if (potentialGpId.length >= 4) {
         s = potentialGpId;
       }
     }
