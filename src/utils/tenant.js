@@ -68,22 +68,39 @@ export const normalizeFirebaseHostingSubdomainToTenantId = (subdomain) => {
   if (!subdomain || typeof subdomain !== 'string') return '';
   let s = subdomain.toLowerCase();
 
-  // NEW FORMAT: gp-<gpId> or gp-<gpId>-<randomSuffix>
+  // NEW FORMAT: gp-<gpId> or gp-<gpId>-<randomSuffix> or gp-<gpId><randomSuffix>
   // Examples:
   // - gp-pindkeparlodha -> pindkeparlodha
   // - gp-pindkeparlodha-wsye6o -> pindkeparlodha
+  // - gp-kachurwahiybxjq9 -> kachurwahi (removes ybxjq9 suffix)
   // - gp-test-village -> test-village
   // - gp-test-village-abc123 -> test-village
   if (s.startsWith('gp-')) {
     // Remove 'gp-' prefix
     s = s.substring(3);
     
-    // Check if there's a Firebase random suffix (6 alphanumeric chars at the end)
-    // Pattern: -[a-z0-9]{6}$ at the end
-    const suffixMatch = s.match(/^(.+)-([a-z0-9]{6})$/);
-    if (suffixMatch) {
-      // Extract the GP ID part (everything before the last hyphen and 6-char suffix)
-      s = suffixMatch[1];
+    // Check if there's a Firebase random suffix (6-7 alphanumeric chars at the end)
+    // Firebase can add suffixes like: ybxjq9 (6 chars) or -abc123 (hyphen + 6 chars)
+    
+    // Pattern 1: -[a-z0-9]{6,7}$ (with hyphen)
+    const suffixWithHyphen = s.match(/^(.+)-([a-z0-9]{6,7})$/);
+    if (suffixWithHyphen) {
+      s = suffixWithHyphen[1];
+      return s;
+    }
+    
+    // Pattern 2: [a-z0-9]{6,7}$ (without hyphen, appended directly)
+    // Example: kachurwahiybxjq9 -> kachurwahi + ybxjq9
+    const suffixWithoutHyphen = s.match(/^(.+?)([a-z0-9]{6,7})$/);
+    if (suffixWithoutHyphen) {
+      const potentialGpId = suffixWithoutHyphen[1];
+      const potentialSuffix = suffixWithoutHyphen[2];
+      
+      // Only remove if the suffix looks random (all lowercase + numbers, no meaningful pattern)
+      // and the gpId part is at least 4 characters (to avoid false positives)
+      if (potentialGpId.length >= 4 && /^[a-z0-9]{6,7}$/.test(potentialSuffix)) {
+        s = potentialGpId;
+      }
     }
     
     return s;

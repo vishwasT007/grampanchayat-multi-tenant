@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Auth Users - Kachurwahi & Soneghat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .gp-item {
+            padding: 15px;
+            margin: 10px 0;
+            background: #f9f9f9;
+            border-radius: 4px;
+            border-left: 4px solid #4CAF50;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success { color: #00ff00; }
+        .error { color: #ff6b6b; }
+        .info { color: #64b5f6; }
+        .warning { color: #ffa726; }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0 15px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        label {
+            font-weight: bold;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Fix Auth Users for Existing GPs</h1>
+        <p>This will create Firebase Auth users for Kachurwahi and Soneghat GPs.</p>
+        
+        <div style="background: #fff3cd; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+            <strong>⚠️ First, you need to login as Super Admin:</strong>
+            <div style="margin-top: 10px;">
+                <label>Super Admin Email:</label>
+                <input type="email" id="superAdminEmail" placeholder="superadmin@grampanchayat.gov.in" />
+                
+                <label>Super Admin Password:</label>
+                <input type="password" id="superAdminPassword" placeholder="Your password" />
+                
+                <button onclick="loginSuperAdmin()">🔐 Login as Super Admin</button>
+            </div>
+        </div>
+
+        <div id="gpsSection" style="display: none;">
+            <h3>GPs Needing Auth Users:</h3>
+            
+            <div class="gp-item">
+                <strong>Kachurwahi</strong><br>
+                Email: admin@kachurwahi.in<br>
+                Password: Admin@123456
+            </div>
+            
+            <div class="gp-item">
+                <strong>Soneghat</strong><br>
+                Email: admin@soneghat.in<br>
+                Password: Admin@123456
+            </div>
+
+            <button onclick="fixAllGPs()">✨ Create Auth Users for Both GPs</button>
+            <button onclick="fixGP('kachurwahi')">Fix Kachurwahi Only</button>
+            <button onclick="fixGP('soneghat')">Fix Soneghat Only</button>
+        </div>
+
+        <div class="log" id="log"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { getAuth, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB67ZvBQ7DLy3nErDuWSorBtbwgKeoWCw4",
+            authDomain: "grampanchayat-multi-tenant.firebaseapp.com",
+            projectId: "grampanchayat-multi-tenant",
+            storageBucket: "grampanchayat-multi-tenant.firebasestorage.app",
+            messagingSenderId: "1081062354050",
+            appId: "1:1081062354050:web:8513cd91ae5c0c1bb5ea13"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const functions = getFunctions(app, 'asia-south1');
+
+        const GPS = {
+            kachurwahi: {
+                tenantId: 'kachurwahi',
+                email: 'admin@kachurwahi.in',
+                password: 'Admin@123456',
+                adminName: 'Kachurwahi Admin'
+            },
+            soneghat: {
+                tenantId: 'soneghat',
+                email: 'admin@soneghat.in',
+                password: 'Admin@123456',
+                adminName: 'Soneghat Admin'
+            }
+        };
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                success: '#00ff00',
+                error: '#ff6b6b',
+                info: '#64b5f6',
+                warning: '#ffa726'
+            };
+            logDiv.innerHTML += `<div style="color: ${colors[type]}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        window.loginSuperAdmin = async function() {
+            const email = document.getElementById('superAdminEmail').value;
+            const password = document.getElementById('superAdminPassword').value;
+
+            if (!email || !password) {
+                log('❌ Please enter email and password', 'error');
+                return;
+            }
+
+            try {
+                log('🔐 Logging in as Super Admin...', 'info');
+                await signInWithEmailAndPassword(auth, email, password);
+                log('✅ Successfully logged in as Super Admin!', 'success');
+                document.getElementById('gpsSection').style.display = 'block';
+            } catch (error) {
+                log(`❌ Login failed: ${error.message}`, 'error');
+            }
+        };
+
+        window.fixGP = async function(gpId) {
+            const gp = GPS[gpId];
+            if (!gp) {
+                log(`❌ GP not found: ${gpId}`, 'error');
+                return;
+            }
+
+            try {
+                log(`🔐 Creating Auth user for ${gpId}...`, 'info');
+                
+                const createGPAuthUser = httpsCallable(functions, 'createGPAuthUser');
+                const result = await createGPAuthUser({
+                    email: gp.email,
+                    password: gp.password,
+                    tenantId: gp.tenantId,
+                    adminName: gp.adminName
+                });
+
+                log(`✅ Success for ${gpId}!`, 'success');
+                log(`   UID: ${result.data.uid}`, 'success');
+                log(`   Message: ${result.data.message}`, 'success');
+                log('', 'info');
+
+            } catch (error) {
+                if (error.message.includes('email-already-exists')) {
+                    log(`⚠️  Auth user for ${gpId} already exists (${gp.email})`, 'warning');
+                    log(`   You can now login at: https://gp-${gpId}ybxjq9.web.app/admin/login`, 'info');
+                } else {
+                    log(`❌ Error for ${gpId}: ${error.message}`, 'error');
+                }
+                log('', 'info');
+            }
+        };
+
+        window.fixAllGPs = async function() {
+            log('🚀 Starting to fix all GPs...', 'info');
+            log('', 'info');
+            
+            for (const gpId of Object.keys(GPS)) {
+                await window.fixGP(gpId);
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second between calls
+            }
+            
+            log('✅ All done!', 'success');
+            log('', 'info');
+            log('📝 Next steps:', 'info');
+            log('   1. Go to https://gp-kachurwahiybxjq9.web.app/admin/login', 'info');
+            log('   2. Login with: admin@kachurwahi.in / Admin@123456', 'info');
+            log('', 'info');
+            log('   1. Go to https://gp-soneghatybxjq9.web.app/admin/login', 'info');
+            log('   2. Login with: admin@soneghat.in / Admin@123456', 'info');
+        };
+
+        // Initial log
+        log('🎯 Ready! Please login as Super Admin first.', 'info');
+    </script>
+</body>
+</html>
