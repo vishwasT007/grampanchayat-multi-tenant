@@ -23,6 +23,11 @@ const DOMAIN_MAP = {
   // Development/Testing
   'localhost': 'development',
   '127.0.0.1': 'development',
+
+  // gatgrampanchayat.in custom domains (subdomain -> tenant)
+  // Note: `hiwarabazar` domain maps to tenant id `hiwrabajar` (spelling differs)
+  'hiwarabazar.gatgrampanchayat.in': 'hiwrabajar',
+  'www.hiwarabazar.gatgrampanchayat.in': 'hiwrabajar',
 };
 
 // List of all tenants/GPs
@@ -168,10 +173,12 @@ export const detectTenant = () => {
     return tenant;
   }
   
-  // Subdomain detection (e.g., pindkepar.grampanchayats.in)
-  if (hostname.includes('.grampanchayats.in')) {
-    const subdomain = hostname.split('.')[0];
-    if (subdomain !== 'www') {
+  // Subdomain detection (e.g., pindkepar.grampanchayats.in or kachurwahi.gatgrampanchayat.in)
+  // For `www.<tenant>.<rootDomain>` we use the second label as tenant.
+  if (hostname.includes('.grampanchayats.in') || hostname.includes('.gatgrampanchayat.in')) {
+    const parts = hostname.split('.');
+    const subdomain = parts[0] === 'www' ? parts[1] : parts[0];
+    if (subdomain) {
       console.log('🏛️ Tenant from subdomain:', subdomain);
       return subdomain;
     }
